@@ -127,7 +127,8 @@
         // --- FIREBASE IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // <<< FIX 1 of 2: Imported `deleteField` to help with data migration
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- FIREBASE CONFIG ---
         const firebaseConfig = {
@@ -254,11 +255,23 @@
                 unsubscribeFromFirestore = onSnapshot(docRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
+                        // <<< FIX 2 of 2: This block now performs a one-time migration
+                        // It moves data from the old `habitHistory` field to the new `spendHistory` field.
                         if (data.habitHistory) {
-                            spendHistory = {};
+                            console.log("Old data structure found. Migrating...");
+                            const migratedSpendHistory = {};
                             Object.keys(data.habitHistory).forEach(date => {
-                                spendHistory[date] = { spendLog: data.habitHistory[date].spendLog || [] };
+                                migratedSpendHistory[date] = { spendLog: data.habitHistory[date].spendLog || [] };
                             });
+                            spendHistory = migratedSpendHistory;
+                            
+                            // This special write operation replaces the old field with the new one.
+                            const migrationRef = doc(db, "users", currentUserId);
+                            setDoc(migrationRef, {
+                                spendHistory: migratedSpendHistory,
+                                habitHistory: deleteField() 
+                            }, { merge: true });
+                            
                         } else {
                             spendHistory = data.spendHistory || {};
                         }
@@ -305,7 +318,7 @@
                 const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit'});
                 spendHistory[dateStr].spendLog.push({ id: Date.now(), amount, method, comment, time });
                 saveDataToFirestore();
-                viewDate(selectedDateStr); // <<< FIX: Manually re-render the view
+                viewDate(selectedDateStr);
             };
 
             const updateSpend = (dateStr, expenseId, newData) => {
@@ -315,7 +328,7 @@
                 if (expenseIndex > -1) {
                     log[expenseIndex] = { ...log[expenseIndex], ...newData };
                     saveDataToFirestore();
-                    viewDate(selectedDateStr); // <<< FIX: Manually re-render the view
+                    viewDate(selectedDateStr);
                 }
             };
 
@@ -324,7 +337,7 @@
                 if (!log) return;
                 spendHistory[dateStr].spendLog = log.filter(e => e.id !== expenseId);
                 saveDataToFirestore();
-                viewDate(selectedDateStr); // <<< FIX: Manually re-render the view
+                viewDate(selectedDateStr);
             };
 
             const startEditMode = (expenseId) => {
