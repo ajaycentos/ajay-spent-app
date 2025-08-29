@@ -36,6 +36,13 @@
         }
         .action-btn:hover { color: #4f46e5; }
         .action-btn.delete:hover { color: #ef4444; }
+        .category-tag {
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 flex items-start justify-center min-h-screen pt-8 sm:pt-12">
@@ -120,6 +127,9 @@
                     <span class="text-slate-500">Busiest Spending Day:</span>
                     <span id="top-spending-day" class="font-bold text-slate-700">--</span>
                 </div>
+                <hr>
+                <div id="category-summary-container">
+                    </div>
             </div>
         </section>
         
@@ -152,7 +162,7 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 5.1 (CATEGORY HTML ADDED) ---
+        // --- SCRIPT VERSION 6.0 (CATEGORY FEATURE COMPLETE) ---
         
         // --- FIREBASE IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -190,6 +200,7 @@
             const formHeader = document.getElementById('form-header');
             const addSpendForm = document.getElementById('add-spend-form');
             const spendAmountInput = document.getElementById('spend-amount-input');
+            const spendCategorySelect = document.getElementById('spend-category-select'); // New
             const spendMethodSelect = document.getElementById('spend-method-select');
             const spendCommentInput = document.getElementById('spend-comment-input');
             const submitSpendButton = document.getElementById('submit-spend-button');
@@ -205,6 +216,7 @@
             const totalMonthlySpend = document.getElementById('total-monthly-spend');
             const avgDailySpend = document.getElementById('avg-daily-spend');
             const topSpendingDay = document.getElementById('top-spending-day');
+            const categorySummaryContainer = document.getElementById('category-summary-container'); // New
 
             // --- APP STATE ---
             let spendHistory = {};
@@ -213,6 +225,14 @@
             let currentUserId = null;
             let unsubscribeFromFirestore = null;
             let editingExpenseId = null; 
+            const categoryColors = { // New: Colors for category tags
+                'Food': 'bg-red-100 text-red-800',
+                'Transport': 'bg-blue-100 text-blue-800',
+                'Shopping': 'bg-yellow-100 text-yellow-800',
+                'Bills': 'bg-purple-100 text-purple-800',
+                'Entertainment': 'bg-green-100 text-green-800',
+                'Other': 'bg-slate-200 text-slate-800',
+            };
 
             // --- AUTHENTICATION & AUTHORIZATION ---
             const checkAuthorization = async (user) => {
@@ -348,7 +368,6 @@
             }
 
             function formatDateForDisplay(dateStr) {
-                // Add T00:00:00 to ensure parsing is consistent across browsers
                 const date = new Date(dateStr + 'T00:00:00');
                 return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
             }
@@ -356,10 +375,10 @@
             // --- CORE LOGIC & CRUD OPERATIONS ---
             const calculateTotalSpend = (spendLog) => (!spendLog ? 0 : spendLog.reduce((sum, entry) => sum + entry.amount, 0));
 
-            const addSpend = (dateStr, amount, method, comment) => {
+            const addSpend = (dateStr, amount, category, method, comment) => {
                 if (!spendHistory[dateStr]) spendHistory[dateStr] = { spendLog: [] };
                 const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit'});
-                spendHistory[dateStr].spendLog.push({ id: Date.now(), amount, method, comment, time });
+                spendHistory[dateStr].spendLog.push({ id: Date.now(), amount, category, method, comment, time });
                 saveDataToFirestore();
                 viewDate(selectedDateStr);
             };
@@ -389,6 +408,7 @@
 
                 editingExpenseId = expenseId;
                 spendAmountInput.value = expense.amount;
+                spendCategorySelect.value = expense.category || 'Other'; // Set category
                 spendMethodSelect.value = expense.method;
                 spendCommentInput.value = expense.comment;
 
@@ -414,14 +434,21 @@
                 let totalSpend = 0;
                 let daysWithExpenses = 0;
                 let topDay = { date: null, amount: 0 };
+                const categoryTotals = {};
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-                // Loop through each day of the month to gather stats
                 for (let i = 1; i <= daysInMonth; i++) {
                     const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                    const dayData = spendHistory[dateStr];
                     
-                    if (spendHistory[dateStr] && spendHistory[dateStr].spendLog.length > 0) {
-                        const dailyTotal = calculateTotalSpend(spendHistory[dateStr].spendLog);
+                    if (dayData && dayData.spendLog.length > 0) {
+                        let dailyTotal = 0;
+                        dayData.spendLog.forEach(entry => {
+                            dailyTotal += entry.amount;
+                            const category = entry.category || 'Other';
+                            categoryTotals[category] = (categoryTotals[category] || 0) + entry.amount;
+                        });
+
                         totalSpend += dailyTotal;
                         daysWithExpenses++;
                         if (dailyTotal > topDay.amount) {
@@ -432,19 +459,30 @@
                 }
 
                 const avgSpend = daysWithExpenses > 0 ? (totalSpend / daysWithExpenses) : 0;
-
-                // Update the HTML elements with the calculated values
                 totalMonthlySpend.textContent = `₹${Math.round(totalSpend)}`;
                 avgDailySpend.textContent = `₹${Math.round(avgSpend)}`;
+                topSpendingDay.textContent = topDay.date ? `Day ${new Date(topDay.date + 'T00:00:00').getDate()} (₹${topDay.amount})` : '--';
                 
-                if (topDay.date) {
-                    const dayOfMonth = new Date(topDay.date + 'T00:00:00').getDate();
-                    topSpendingDay.textContent = `Day ${dayOfMonth} (₹${topDay.amount})`;
+                // Render category summary
+                categorySummaryContainer.innerHTML = '';
+                const sortedCategories = Object.entries(categoryTotals).sort(([,a],[,b]) => b-a);
+                if (sortedCategories.length > 0) {
+                    sortedCategories.forEach(([category, amount]) => {
+                        const colorClass = categoryColors[category] || categoryColors['Other'];
+                        const div = document.createElement('div');
+                        div.className = 'flex justify-between items-center';
+                        div.innerHTML = `
+                            <span class="flex items-center gap-2">
+                                <span class="category-tag ${colorClass}">${category}</span>
+                            </span>
+                            <span class="font-semibold">₹${Math.round(amount)}</span>
+                        `;
+                        categorySummaryContainer.appendChild(div);
+                    });
                 } else {
-                    topSpendingDay.textContent = '--';
+                    categorySummaryContainer.innerHTML = '<p class="text-slate-400 text-center">No expenses to categorize this month.</p>';
                 }
 
-                // Make the summary section visible
                 monthlySummarySection.style.display = 'block';
             };
 
@@ -457,14 +495,16 @@
                 [...spendLog].reverse().forEach(entry => {
                     const li = document.createElement('li');
                     li.className = 'bg-white p-3 rounded-lg flex justify-between items-start gap-2';
+                    const category = entry.category || 'Other';
+                    const colorClass = categoryColors[category] || categoryColors['Other'];
                     li.innerHTML = `
                         <div class="flex-grow">
-                            <div class="flex justify-between items-center">
+                            <div class="flex justify-between items-start">
                                 <span class="font-bold text-lg text-red-600">₹${entry.amount}</span>
-                                <span class="text-xs bg-slate-200 text-slate-600 font-semibold px-2 py-1 rounded-full">${entry.method}</span>
+                                <span class="category-tag ${colorClass}">${category}</span>
                             </div>
                             <p class="text-slate-600 text-sm mt-1">${entry.comment || '&nbsp;'}</p>
-                            <p class="text-right text-xs text-slate-400 mt-1">${entry.time}</p>
+                            <p class="text-right text-xs text-slate-400 mt-1">${entry.time} &bull; ${entry.method}</p>
                         </div>
                         <div class="flex flex-col">
                              <button title="Edit" class="action-btn edit-btn" data-id="${entry.id}">
@@ -494,12 +534,10 @@
                 for (let i = 1; i <= daysInMonth; i++) {
                     const dayCell = document.createElement('div');
                     const dayDate = new Date(year, month, i);
-                    
                     const yearStr = dayDate.getFullYear();
                     const monthStr = (dayDate.getMonth() + 1).toString().padStart(2, '0');
                     const dayStr = dayDate.getDate().toString().padStart(2, '0');
                     const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
-
                     dayCell.className = 'calendar-day';
                     dayCell.dataset.date = dateStr;
                     if (dateStr === getTodayDateString()) dayCell.classList.add('today');
@@ -515,7 +553,6 @@
                     dayCell.innerHTML = `<span>${i}</span>${spendHtml}`;
                     calendarBody.appendChild(dayCell);
                 }
-
                 calculateAndDisplayMonthlySummary(year, month);
             };
 
@@ -527,10 +564,8 @@
                 
                 const totalSpend = calculateTotalSpend(dataForDay.spendLog);
                 totalSpendDisplay.textContent = `₹${totalSpend}`;
-
                 spendHeader.textContent = isToday ? "Total Spent Today" : `Total Spent on ${formatDateForDisplay(dateStr)}`;
                 spendLogHeader.textContent = isToday ? "Today's Expenses" : `Expenses for ${formatDateForDisplay(dateStr)}`;
-
                 renderSpendLog(dataForDay.spendLog);
                 resetButton.style.display = isToday ? 'block' : 'none';
                 renderCalendar();
@@ -540,15 +575,16 @@
             addSpendForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const amount = parseInt(spendAmountInput.value);
+                const category = spendCategorySelect.value;
                 const method = spendMethodSelect.value;
                 const comment = spendCommentInput.value;
 
                 if (!amount || amount <= 0) return;
 
                 if (editingExpenseId) {
-                    updateSpend(selectedDateStr, editingExpenseId, { amount, method, comment });
+                    updateSpend(selectedDateStr, editingExpenseId, { amount, category, method, comment });
                 } else {
-                    addSpend(selectedDateStr, amount, method, comment);
+                    addSpend(selectedDateStr, amount, category, method, comment);
                 }
                 cancelEditMode();
             });
@@ -556,7 +592,6 @@
             spendLogList.addEventListener('click', (e) => {
                 const editBtn = e.target.closest('.edit-btn');
                 const deleteBtn = e.target.closest('.delete-btn');
-
                 if (editBtn) {
                     const expenseId = parseInt(editBtn.dataset.id);
                     startEditMode(expenseId);
@@ -578,8 +613,10 @@
             });
             resetButton.addEventListener('click', () => {
                 if (confirm("Are you sure you want to reset today's spending data?")) {
-                    spendHistory[getTodayDateString()].spendLog = [];
-                    saveDataToFirestore();
+                    if(spendHistory[getTodayDateString()]) {
+                        spendHistory[getTodayDateString()].spendLog = [];
+                        saveDataToFirestore();
+                    }
                 }
             });
             prevMonthBtn.addEventListener('click', () => {
