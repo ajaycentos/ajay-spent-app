@@ -387,7 +387,7 @@
                 selectedDateStr = dateStr;
                 const dataForDay = spendHistory[dateStr] || { spendLog: [] };
                 
-                // *** THIS IS THE CORRECTED LINE ***
+                // This is the single line with the corrected typo
                 const totalSpend = calculateTotalSpend(dataForDay.spendLog);
                 totalSpendDisplay.textContent = `₹${totalSpend}`;
                 
@@ -395,14 +395,20 @@
                 renderSpendLog(dataForDay.spendLog.slice().reverse());
                 resetButton.style.display = (dateStr === getTodayDateString()) ? 'block' : 'none';
             };
+
             const toggleSearchView = (isSearching) => {
                 addSpendSection.style.display = isSearching ? 'none' : 'block';
                 totalSpendSection.style.display = isSearching ? 'none' : 'block';
                 calendarSection.style.display = isSearching ? 'none' : 'block';
                 monthlySummarySection.style.display = isSearching ? 'none' : 'block';
                 manageRecurringButton.style.display = isSearching ? 'none' : 'block';
-                if (isSearching) { spendLogHeader.textContent = "Search Results"; }
-                else { const isToday = selectedDateStr === getTodayDateString(); spendHeader.textContent = isToday ? "Total Spent Today" : `Total Spent on ${formatDateForDisplay(selectedDateStr)}`; spendLogHeader.textContent = isToday ? "Today's Expenses" : `Expenses for ${formatDateForDisplay(selectedDateStr)}`; }
+                if (isSearching) { 
+                    spendLogHeader.textContent = "Search Results"; 
+                } else { 
+                    const isToday = selectedDateStr === getTodayDateString(); 
+                    spendHeader.textContent = isToday ? "Total Spent Today" : `Total Spent on ${formatDateForDisplay(selectedDateStr)}`; 
+                    spendLogHeader.textContent = isToday ? "Today's Expenses" : `Expenses for ${formatDateForDisplay(selectedDateStr)}`; 
+                }
             };
             
             // --- EVENT LISTENERS ---
