@@ -255,8 +255,6 @@
                     let needsSave = false;
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        // <<< FIX: Robust data loading and migration logic
-                        // Prioritize the new field, but fall back to the old one if it exists.
                         if (data.spendHistory) {
                             spendHistory = data.spendHistory;
                         } else if (data.habitHistory) {
@@ -266,7 +264,7 @@
                                 migratedData[date] = { spendLog: data.habitHistory[date].spendLog || [] };
                             });
                             spendHistory = migratedData;
-                            needsSave = true; // Mark that we need to save to consolidate the data structure.
+                            needsSave = true;
                         } else {
                             spendHistory = {};
                         }
@@ -277,7 +275,7 @@
                     const todayStr = getTodayDateString();
                     if (!spendHistory[todayStr]) {
                         spendHistory[todayStr] = { spendLog: [] };
-                        needsSave = true; // Also needs a save if today's entry is new.
+                        needsSave = true;
                     }
 
                     if (needsSave) {
@@ -296,8 +294,6 @@
                 if (!currentUserId) return;
                 try {
                     const docRef = doc(db, "users", currentUserId);
-                    // <<< FIX: Robust save operation
-                    // Always saves to the new field and deletes the old one.
                     await setDoc(docRef, {
                         spendHistory: spendHistory,
                         habitHistory: deleteField()
@@ -309,7 +305,15 @@
             };
 
             // --- DATE HELPERS ---
-            function getTodayDateString() { return new Date().toISOString().split('T')[0]; }
+            // <<< FIX: This function now correctly uses the local timezone instead of UTC.
+            function getTodayDateString() {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = (today.getMonth() + 1).toString().padStart(2, '0'); // +1 because months are 0-indexed
+                const day = today.getDate().toString().padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
             function formatDateForDisplay(dateStr) {
                 const date = new Date(dateStr + 'T00:00:00');
                 return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
