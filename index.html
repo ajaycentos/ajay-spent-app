@@ -196,7 +196,7 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 9.1 (HEADER BUG FIX) ---
+        // --- SCRIPT VERSION 9.2 (FINAL HEADER BUG FIX) ---
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -384,11 +384,14 @@
                 searchInput.value = ''; 
                 toggleSearchView(false); 
                 
-                // FIX: This is the corrected update order
                 selectedDateStr = dateStr;
-                renderCalendar(); 
-                
                 const dataForDay = spendHistory[dateStr] || { spendLog: [] };
+                
+                // This is the single line that was fixed.
+                const totalSpend = calculateTotalSpend(dataForDay.spendLog);
+                totalSpendDisplay.textContent = `₹${totalSpend}`;
+                
+                renderCalendar(); 
                 renderSpendLog(dataForDay.spendLog.slice().reverse());
                 resetButton.style.display = (dateStr === getTodayDateString()) ? 'block' : 'none';
             };
