@@ -61,6 +61,16 @@
                 <h2 id="form-header" class="text-lg font-semibold mb-3 px-2">Log Expense</h2>
                 <form id="add-spend-form" class="bg-white p-4 rounded-xl shadow-sm space-y-3">
                     <input type="number" id="spend-amount-input" placeholder="Amount (₹)" required class="w-full bg-slate-100 border border-slate-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    
+                    <select id="spend-category-select" class="w-full bg-slate-100 border border-slate-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                        <option>Food</option>
+                        <option>Transport</option>
+                        <option>Shopping</option>
+                        <option>Bills</option>
+                        <option>Entertainment</option>
+                        <option>Other</option>
+                    </select>
+
                     <select id="spend-method-select" class="w-full bg-slate-100 border border-slate-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                         <option>UPI - CreditCard</option>
                         <option>UPI - Bank</option>
@@ -112,6 +122,7 @@
                 </div>
             </div>
         </section>
+        
         <footer class="text-center mt-8">
             <button id="reset-button" class="text-slate-500 text-sm hover:text-indigo-600">Reset today's data</button>
         </footer>
@@ -141,7 +152,7 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 5.0 (MONTHLY SUMMARY FEATURE) ---
+        // --- SCRIPT VERSION 5.1 (CATEGORY HTML ADDED) ---
         
         // --- FIREBASE IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
