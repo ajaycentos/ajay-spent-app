@@ -178,7 +178,7 @@
             let selectedDateStr = getTodayDateString();
             let currentUserId = null;
             let unsubscribeFromFirestore = null;
-            let editingExpenseId = null; // NEW: To track which expense is being edited
+            let editingExpenseId = null; 
 
             // --- AUTHENTICATION & AUTHORIZATION ---
             const checkAuthorization = async (user) => {
@@ -254,7 +254,7 @@
                 unsubscribeFromFirestore = onSnapshot(docRef, (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        if (data.habitHistory) { // For backward compatibility
+                        if (data.habitHistory) {
                             spendHistory = {};
                             Object.keys(data.habitHistory).forEach(date => {
                                 spendHistory[date] = { spendLog: data.habitHistory[date].spendLog || [] };
@@ -305,6 +305,7 @@
                 const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit'});
                 spendHistory[dateStr].spendLog.push({ id: Date.now(), amount, method, comment, time });
                 saveDataToFirestore();
+                viewDate(selectedDateStr); // <<< FIX: Manually re-render the view
             };
 
             const updateSpend = (dateStr, expenseId, newData) => {
@@ -314,6 +315,7 @@
                 if (expenseIndex > -1) {
                     log[expenseIndex] = { ...log[expenseIndex], ...newData };
                     saveDataToFirestore();
+                    viewDate(selectedDateStr); // <<< FIX: Manually re-render the view
                 }
             };
 
@@ -322,6 +324,7 @@
                 if (!log) return;
                 spendHistory[dateStr].spendLog = log.filter(e => e.id !== expenseId);
                 saveDataToFirestore();
+                viewDate(selectedDateStr); // <<< FIX: Manually re-render the view
             };
 
             const startEditMode = (expenseId) => {
@@ -416,7 +419,7 @@
             };
 
             const viewDate = (dateStr) => {
-                if(editingExpenseId) cancelEditMode(); // Cancel edit if switching days
+                if(editingExpenseId) cancelEditMode();
                 selectedDateStr = dateStr;
                 const dataForDay = spendHistory[dateStr] || { spendLog: [] };
                 const isToday = dateStr === getTodayDateString();
@@ -442,10 +445,8 @@
                 if (!amount || amount <= 0) return;
 
                 if (editingExpenseId) {
-                    // Update existing expense
                     updateSpend(selectedDateStr, editingExpenseId, { amount, method, comment });
                 } else {
-                    // Add new expense
                     addSpend(selectedDateStr, amount, method, comment);
                 }
                 cancelEditMode();
