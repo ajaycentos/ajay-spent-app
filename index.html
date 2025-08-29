@@ -196,7 +196,7 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 9.2 (FINAL HEADER BUG FIX) ---
+        // --- SCRIPT VERSION 10.0 (FINAL TYPO FIX) ---
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -386,8 +386,8 @@
                 
                 selectedDateStr = dateStr;
                 const dataForDay = spendHistory[dateStr] || { spendLog: [] };
-
-                // *** THIS WAS THE BUG. It was misspelled as "dataForday.spendLog" ***
+                
+                // *** THIS IS THE CORRECTED LINE ***
                 const totalSpend = calculateTotalSpend(dataForDay.spendLog);
                 totalSpendDisplay.textContent = `₹${totalSpend}`;
                 
