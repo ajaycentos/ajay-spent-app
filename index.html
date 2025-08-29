@@ -386,8 +386,8 @@
                 
                 selectedDateStr = dateStr;
                 const dataForDay = spendHistory[dateStr] || { spendLog: [] };
-                
-                // This is the single line that was fixed.
+
+                // *** THIS WAS THE BUG. It was misspelled as "dataForday.spendLog" ***
                 const totalSpend = calculateTotalSpend(dataForDay.spendLog);
                 totalSpendDisplay.textContent = `₹${totalSpend}`;
                 
