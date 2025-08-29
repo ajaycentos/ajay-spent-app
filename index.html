@@ -136,6 +136,9 @@
                 </div>
                 <hr>
                 <div id="category-summary-container"></div>
+                <div class="pt-2 text-center">
+                    <button id="export-csv-button" class="bg-green-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-green-700 text-sm transition shadow-sm">Export to CSV</button>
+                </div>
             </div>
         </section>
         
@@ -193,7 +196,7 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 8.0 (SEARCH & PLUXEE CARD) ---
+        // --- SCRIPT VERSION 9.0 (EXPORT TO CSV) ---
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -258,6 +261,7 @@
             const recurringDayInput = document.getElementById('recurring-day-input');
             const recurringCategorySelect = document.getElementById('recurring-category-select');
             const recurringList = document.getElementById('recurring-list');
+            const exportCsvButton = document.getElementById('export-csv-button');
 
             // --- APP STATE ---
             let spendHistory = {};
@@ -270,14 +274,7 @@
             const categoryColors = { 'Food': 'bg-red-100 text-red-800', 'Transport': 'bg-blue-100 text-blue-800', 'Shopping': 'bg-yellow-100 text-yellow-800', 'Bills': 'bg-purple-100 text-purple-800', 'Entertainment': 'bg-green-100 text-green-800', 'Other': 'bg-slate-200 text-slate-800'};
 
             // --- AUTHENTICATION & AUTHORIZATION ---
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    loaderOverlay.style.display = 'flex';
-                    const isAuthorized = await checkAuthorization(user);
-                    if (isAuthorized) { currentUserId = user.uid; authOverlay.style.display = 'none'; appContainer.style.display = 'block'; loadDataFromFirestore();
-                    } else { loaderOverlay.style.display = 'none'; }
-                } else { currentUserId = null; if (unsubscribeFromFirestore) unsubscribeFromFirestore(); spendHistory = {}; authOverlay.style.display = 'flex'; appContainer.style.display = 'none'; loaderOverlay.style.display = 'none'; }
-            });
+            onAuthStateChanged(auth, async (user) => { if (user) { loaderOverlay.style.display = 'flex'; const isAuthorized = await checkAuthorization(user); if (isAuthorized) { currentUserId = user.uid; authOverlay.style.display = 'none'; appContainer.style.display = 'block'; loadDataFromFirestore(); } else { loaderOverlay.style.display = 'none'; } } else { currentUserId = null; if (unsubscribeFromFirestore) unsubscribeFromFirestore(); spendHistory = {}; authOverlay.style.display = 'flex'; appContainer.style.display = 'none'; loaderOverlay.style.display = 'none'; }});
             const checkAuthorization = async (user) => { try { const docSnap = await getDoc(doc(db, "config", "whitelist")); if (docSnap.exists() && docSnap.data().allowedEmails?.includes(user.email)) return true; } catch(e) { console.error("Auth check error:", e); } authError.textContent = "You are not authorized."; signOut(auth); return false; };
             const actionCodeSettings = { url: window.location.href, handleCodeInApp: true };
             googleSigninButton.addEventListener('click', async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { console.error("Google Sign-In Error:", error); authError.textContent = "Could not sign in with Google."; }});
@@ -322,8 +319,37 @@
             // --- RECURRING EXPENSE LOGIC ---
             const applyRecurringExpenses = () => { let changed = false; const today = new Date(); const currentMonth = today.getMonth(); const currentYear = today.getFullYear(); recurringExpenses.forEach(expense => { const expenseDate = new Date(currentYear, currentMonth, expense.day); if (expenseDate <= today) { const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${expense.day.toString().padStart(2, '0')}`; if (!spendHistory[dateStr]) spendHistory[dateStr] = { spendLog: [] }; if (!spendHistory[dateStr].spendLog.some(e => e.recurringId === expense.id)) { console.log(`Applying recurring expense: ${expense.comment}`); addSpend(dateStr, expense.amount, expense.category, 'Auto', expense.comment, true, expense.id); changed = true; } } }); return changed; };
             
+            // --- DATA EXPORT ---
+            const sanitizeCSVField = (field) => { const str = String(field == null ? '' : field); if (str.includes(',') || str.includes('"') || str.includes('\n')) { return `"${str.replace(/"/g, '""')}"`; } return str; };
+            const exportMonthToCSV = () => {
+                const year = calendarDate.getFullYear(); const month = calendarDate.getMonth();
+                const monthName = calendarDate.toLocaleDateString('en-US', { month: 'long' });
+                let expensesToExport = [];
+                for (let i = 1; i <= new Date(year, month + 1, 0).getDate(); i++) {
+                    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                    if (spendHistory[dateStr]?.spendLog.length > 0) {
+                        spendHistory[dateStr].spendLog.forEach(expense => { expensesToExport.push({ date: dateStr, ...expense }); });
+                    }
+                }
+                if (expensesToExport.length === 0) { alert(`No expenses to export for ${monthName} ${year}.`); return; }
+
+                const headers = ["Date", "Category", "Amount", "Method", "Comment"];
+                let csvContent = headers.join(",") + "\n";
+                expensesToExport.forEach(exp => { const row = [exp.date, exp.category || 'Other', exp.amount, exp.method, exp.comment || '']; csvContent += row.map(sanitizeCSVField).join(",") + "\n"; });
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", `expenses-${monthName}-${year}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
             // --- UI & RENDERING ---
-            const startEditMode = (expenseId) => { const expense = spendHistory[selectedDateStr]?.spendLog.find(e => e.id === expenseId); if (!expense) return; editingExpenseId = expenseId; spendAmountInput.value = expense.amount; spendCategorySelect.value = expense.category || 'Other'; spendMethodSelect.value = expense.method; spendCommentInput.value = expense.comment; formHeader.textContent = "Edit Expense"; submitSpendButton.textContent = "Update Expense"; submitSpendButton.classList.replace('bg-red-600', 'bg-indigo-600'); cancelEditButton.style.display = 'block'; };
+            const startEditMode = (expenseId, date) => { const expense = spendHistory[date]?.spendLog.find(e => e.id === expenseId); if (!expense) return; editingExpenseId = expenseId; selectedDateStr = date; spendAmountInput.value = expense.amount; spendCategorySelect.value = expense.category || 'Other'; spendMethodSelect.value = expense.method; spendCommentInput.value = expense.comment; formHeader.textContent = "Edit Expense"; submitSpendButton.textContent = "Update Expense"; submitSpendButton.classList.replace('bg-red-600', 'bg-indigo-600'); cancelEditButton.style.display = 'block'; };
             const cancelEditMode = () => { editingExpenseId = null; addSpendForm.reset(); formHeader.textContent = "Log Expense"; submitSpendButton.textContent = "Log Expense"; submitSpendButton.classList.replace('bg-indigo-600', 'bg-red-600'); cancelEditButton.style.display = 'none'; };
             
             const calculateAndDisplayMonthlySummary = (year, month) => {
@@ -346,79 +372,36 @@
             };
 
             const renderSpendLog = (spendLog, isSearchResult = false) => {
-                spendLogList.innerHTML = '';
-                if (!spendLog || spendLog.length === 0) { spendLogList.innerHTML = `<p class="text-center text-slate-500 p-4">No expenses found.</p>`; return; }
-                spendLog.forEach(entry => { // No reverse for search results
-                    const li = document.createElement('li');
-                    li.className = `bg-white p-3 rounded-lg flex justify-between items-start gap-2 ${entry.isRecurring ? 'opacity-70 border-l-4 border-indigo-300' : ''}`;
-                    const category = entry.category || 'Other';
-                    const dateDisplay = isSearchResult ? `<p class="text-xs font-semibold text-indigo-600 mb-1">${formatDateForDisplay(entry.date)}</p>` : '';
-                    li.innerHTML = `
-                        <div class="flex-grow">
-                            ${dateDisplay}
-                            <div class="flex justify-between items-start"><span class="font-bold text-lg text-red-600">₹${entry.amount}</span><span class="category-tag ${categoryColors[category] || categoryColors['Other']}">${category}</span></div>
-                            <p class="text-slate-600 text-sm mt-1">${entry.comment || '&nbsp;'}</p>
-                            <p class="text-right text-xs text-slate-400 mt-1">${entry.isRecurring ? 'Auto-logged' : entry.time} &bull; ${entry.method}</p>
-                        </div>
-                        <div class="flex flex-col">
-                            ${!entry.isRecurring ? `<button title="Edit" class="action-btn edit-btn" data-id="${entry.id}" data-date="${entry.date}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}
-                            <button title="Delete" class="action-btn delete-btn delete" data-id="${entry.id}" data-date="${entry.date}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button>
-                        </div>`;
+                spendLogList.innerHTML = ''; if (!spendLog || spendLog.length === 0) { spendLogList.innerHTML = `<p class="text-center text-slate-500 p-4">No expenses found.</p>`; return; }
+                spendLog.forEach(entry => { const li = document.createElement('li'); li.className = `bg-white p-3 rounded-lg flex justify-between items-start gap-2 ${entry.isRecurring ? 'opacity-70 border-l-4 border-indigo-300' : ''}`; const category = entry.category || 'Other'; const dateDisplay = isSearchResult ? `<p class="text-xs font-semibold text-indigo-600 mb-1">${formatDateForDisplay(entry.date)}</p>` : '';
+                    li.innerHTML = `<div class="flex-grow">${dateDisplay}<div class="flex justify-between items-start"><span class="font-bold text-lg text-red-600">₹${entry.amount}</span><span class="category-tag ${categoryColors[category] || categoryColors['Other']}">${category}</span></div><p class="text-slate-600 text-sm mt-1">${entry.comment || '&nbsp;'}</p><p class="text-right text-xs text-slate-400 mt-1">${entry.isRecurring ? 'Auto-logged' : entry.time} &bull; ${entry.method}</p></div><div class="flex flex-col">${!entry.isRecurring ? `<button title="Edit" class="action-btn edit-btn" data-id="${entry.id}" data-date="${entry.date || selectedDateStr}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}<button title="Delete" class="action-btn delete-btn delete" data-id="${entry.id}" data-date="${entry.date || selectedDateStr}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button></div>`;
                     spendLogList.appendChild(li);
                 });
             };
-
-            const renderRecurringList = () => {
-                recurringList.innerHTML = '';
-                if (recurringExpenses.length === 0) { recurringList.innerHTML = `<p class="text-center text-slate-500 text-xs p-2">No recurring expenses set.</p>`; return; }
-                recurringExpenses.forEach(exp => { const li = document.createElement('li'); li.className = 'bg-white p-2 rounded-lg flex justify-between items-center text-sm'; li.innerHTML = `<div><p class="font-semibold">${exp.comment} - <span class="text-red-600">₹${exp.amount}</span></p><p class="text-xs text-slate-500">Day ${exp.day} of each month &bull; ${exp.category}</p></div><button class="action-btn delete-recurring-btn delete" data-id="${exp.id}">&times;</button>`; recurringList.appendChild(li); });
-            };
-
-            const renderCalendar = () => {
-                calendarBody.innerHTML = ''; const year = calendarDate.getFullYear(); const month = calendarDate.getMonth();
-                monthYearElement.textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
-                for (let i = 0; i < firstDay; i++) { calendarBody.insertAdjacentHTML('beforeend', `<div class="calendar-day other-month"></div>`); }
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const dayCell = document.createElement('div'); const dayDate = new Date(year, month, i);
-                    const dateStr = `${dayDate.getFullYear()}-${(dayDate.getMonth() + 1).toString().padStart(2, '0')}-${dayDate.getDate().toString().padStart(2, '0')}`;
-                    dayCell.className = 'calendar-day'; dayCell.dataset.date = dateStr;
-                    if (dateStr === getTodayDateString()) dayCell.classList.add('today'); if (dateStr === selectedDateStr) dayCell.classList.add('selected');
-                    let spendHtml = ''; if (spendHistory[dateStr]) { const totalSpend = calculateTotalSpend(spendHistory[dateStr].spendLog); if (totalSpend > 0) { spendHtml = `<span class="spend">₹${totalSpend}</span>`; }}
-                    dayCell.innerHTML = `<span>${i}</span>${spendHtml}`; calendarBody.appendChild(dayCell);
-                }
-                calculateAndDisplayMonthlySummary(year, month);
-            };
+            const renderRecurringList = () => { recurringList.innerHTML = ''; if (recurringExpenses.length === 0) { recurringList.innerHTML = `<p class="text-center text-slate-500 text-xs p-2">No recurring expenses set.</p>`; return; } recurringExpenses.forEach(exp => { const li = document.createElement('li'); li.className = 'bg-white p-2 rounded-lg flex justify-between items-center text-sm'; li.innerHTML = `<div><p class="font-semibold">${exp.comment} - <span class="text-red-600">₹${exp.amount}</span></p><p class="text-xs text-slate-500">Day ${exp.day} of each month &bull; ${exp.category}</p></div><button class="action-btn delete-recurring-btn delete" data-id="${exp.id}">&times;</button>`; recurringList.appendChild(li); }); };
+            const renderCalendar = () => { calendarBody.innerHTML = ''; const year = calendarDate.getFullYear(); const month = calendarDate.getMonth(); monthYearElement.textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); for (let i = 0; i < firstDay; i++) { calendarBody.insertAdjacentHTML('beforeend', `<div class="calendar-day other-month"></div>`); } for (let i = 1; i <= daysInMonth; i++) { const dayCell = document.createElement('div'); const dayDate = new Date(year, month, i); const dateStr = `${dayDate.getFullYear()}-${(dayDate.getMonth() + 1).toString().padStart(2, '0')}-${dayDate.getDate().toString().padStart(2, '0')}`; dayCell.className = 'calendar-day'; dayCell.dataset.date = dateStr; if (dateStr === getTodayDateString()) dayCell.classList.add('today'); if (dateStr === selectedDateStr) dayCell.classList.add('selected'); let spendHtml = ''; if (spendHistory[dateStr]) { const totalSpend = calculateTotalSpend(spendHistory[dateStr].spendLog); if (totalSpend > 0) { spendHtml = `<span class="spend">₹${totalSpend}</span>`; }} dayCell.innerHTML = `<span>${i}</span>${spendHtml}`; calendarBody.appendChild(dayCell); } calculateAndDisplayMonthlySummary(year, month); };
 
             const viewDate = (dateStr) => {
                 if(editingExpenseId) cancelEditMode();
-                searchInput.value = '';
-                toggleSearchView(false);
-                selectedDateStr = dateStr;
+                searchInput.value = ''; toggleSearchView(false); selectedDateStr = dateStr;
                 const dataForDay = spendHistory[dateStr] || { spendLog: [] };
-                renderSpendLog(dataForDay.spendLog.slice().reverse()); // Pass a reversed copy
+                renderSpendLog(dataForDay.spendLog.slice().reverse());
                 resetButton.style.display = (dateStr === getTodayDateString()) ? 'block' : 'none';
                 renderCalendar();
             };
-            
             const toggleSearchView = (isSearching) => {
                 addSpendSection.style.display = isSearching ? 'none' : 'block';
                 totalSpendSection.style.display = isSearching ? 'none' : 'block';
                 calendarSection.style.display = isSearching ? 'none' : 'block';
                 monthlySummarySection.style.display = isSearching ? 'none' : 'block';
                 manageRecurringButton.style.display = isSearching ? 'none' : 'block';
-                if (isSearching) {
-                    spendLogHeader.textContent = "Search Results";
-                } else {
-                    const isToday = selectedDateStr === getTodayDateString();
-                    spendHeader.textContent = isToday ? "Total Spent Today" : `Total Spent on ${formatDateForDisplay(selectedDateStr)}`;
-                    spendLogHeader.textContent = isToday ? "Today's Expenses" : `Expenses for ${formatDateForDisplay(selectedDateStr)}`;
-                }
+                if (isSearching) { spendLogHeader.textContent = "Search Results"; }
+                else { const isToday = selectedDateStr === getTodayDateString(); spendHeader.textContent = isToday ? "Total Spent Today" : `Total Spent on ${formatDateForDisplay(selectedDateStr)}`; spendLogHeader.textContent = isToday ? "Today's Expenses" : `Expenses for ${formatDateForDisplay(selectedDateStr)}`; }
             };
             
             // --- EVENT LISTENERS ---
             addSpendForm.addEventListener('submit', (e) => { e.preventDefault(); const amount = parseInt(spendAmountInput.value); const category = spendCategorySelect.value; const method = spendMethodSelect.value; const comment = spendCommentInput.value; if (!amount || amount <= 0) return; if (editingExpenseId) { updateSpend(selectedDateStr, editingExpenseId, { amount, category, method, comment }); } else { addSpend(selectedDateStr, amount, category, method, comment); } cancelEditMode(); });
-            spendLogList.addEventListener('click', (e) => { const editBtn = e.target.closest('.edit-btn'); const deleteBtn = e.target.closest('.delete-btn'); const date = editBtn?.dataset.date || deleteBtn?.dataset.date || selectedDateStr; if (editBtn) { selectedDateStr = date; startEditMode(parseInt(editBtn.dataset.id)); } else if (deleteBtn) { if (confirm("Delete this expense?")) { deleteSpend(date, parseInt(deleteBtn.dataset.id)); if (searchInput.value) searchInput.dispatchEvent(new Event('input')); } }});
+            spendLogList.addEventListener('click', (e) => { const editBtn = e.target.closest('.edit-btn'); const deleteBtn = e.target.closest('.delete-btn'); const date = editBtn?.dataset.date || deleteBtn?.dataset.date; if (editBtn) { startEditMode(parseInt(editBtn.dataset.id), date); } else if (deleteBtn) { if (confirm("Delete this expense?")) { deleteSpend(date, parseInt(deleteBtn.dataset.id)); if (searchInput.value) searchInput.dispatchEvent(new Event('input')); } }});
             cancelEditButton.addEventListener('click', cancelEditMode);
             calendarBody.addEventListener('click', (e) => { const dayCell = e.target.closest('.calendar-day'); if (dayCell?.dataset.date) { viewDate(dayCell.dataset.date); }});
             resetButton.addEventListener('click', () => { if (confirm("Are you sure?")) { if(spendHistory[getTodayDateString()]) { spendHistory[getTodayDateString()].spendLog = []; saveDataToFirestore(); } }});
@@ -433,16 +416,11 @@
                 if (!query) { viewDate(selectedDateStr); return; }
                 toggleSearchView(true);
                 let results = [];
-                Object.keys(spendHistory).forEach(date => {
-                    spendHistory[date].spendLog.forEach(expense => {
-                        if (expense.comment?.toLowerCase().includes(query) || expense.category?.toLowerCase().includes(query) || expense.amount.toString().includes(query)) {
-                            results.push({ ...expense, date });
-                        }
-                    });
-                });
+                Object.keys(spendHistory).forEach(date => { spendHistory[date].spendLog.forEach(expense => { if (expense.comment?.toLowerCase().includes(query) || expense.category?.toLowerCase().includes(query) || expense.amount.toString().includes(query)) { results.push({ ...expense, date }); } }); });
                 results.sort((a, b) => new Date(b.date) - new Date(a.date));
                 renderSpendLog(results, true);
             });
+            exportCsvButton.addEventListener('click', exportMonthToCSV);
 
             // --- INITIALIZATION ---
             const displayDate = () => { dateElement.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); };
