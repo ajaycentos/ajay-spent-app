@@ -94,7 +94,24 @@
                 <div id="calendar-body" class="calendar-grid"></div>
             </div>
         </section>
-        
+
+        <section id="monthly-summary-section" class="mt-8" style="display: none;">
+            <h2 class="text-lg font-semibold mb-3 px-2">Monthly Summary</h2>
+            <div class="bg-white p-4 rounded-2xl shadow-md space-y-3 text-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500">Total Monthly Spend:</span>
+                    <span id="total-monthly-spend" class="font-bold text-xl text-red-500">₹0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500">Average Daily Spend:</span>
+                    <span id="avg-daily-spend" class="font-bold text-slate-700">₹0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500">Busiest Spending Day:</span>
+                    <span id="top-spending-day" class="font-bold text-slate-700">--</span>
+                </div>
+            </div>
+        </section>
         <footer class="text-center mt-8">
             <button id="reset-button" class="text-slate-500 text-sm hover:text-indigo-600">Reset today's data</button>
         </footer>
@@ -124,6 +141,8 @@
     </div>
 
     <script type="module">
+        // --- SCRIPT VERSION 5.0 (MONTHLY SUMMARY FEATURE) ---
+        
         // --- FIREBASE IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -171,6 +190,10 @@
             const calendarBody = document.getElementById('calendar-body');
             const prevMonthBtn = document.getElementById('prev-month');
             const nextMonthBtn = document.getElementById('next-month');
+            const monthlySummarySection = document.getElementById('monthly-summary-section');
+            const totalMonthlySpend = document.getElementById('total-monthly-spend');
+            const avgDailySpend = document.getElementById('avg-daily-spend');
+            const topSpendingDay = document.getElementById('top-spending-day');
 
             // --- APP STATE ---
             let spendHistory = {};
@@ -314,8 +337,9 @@
             }
 
             function formatDateForDisplay(dateStr) {
+                // Add T00:00:00 to ensure parsing is consistent across browsers
                 const date = new Date(dateStr + 'T00:00:00');
-                return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+                return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
             }
 
             // --- CORE LOGIC & CRUD OPERATIONS ---
@@ -375,6 +399,44 @@
             };
 
             // --- RENDERING ---
+            const calculateAndDisplayMonthlySummary = (year, month) => {
+                let totalSpend = 0;
+                let daysWithExpenses = 0;
+                let topDay = { date: null, amount: 0 };
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                // Loop through each day of the month to gather stats
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                    
+                    if (spendHistory[dateStr] && spendHistory[dateStr].spendLog.length > 0) {
+                        const dailyTotal = calculateTotalSpend(spendHistory[dateStr].spendLog);
+                        totalSpend += dailyTotal;
+                        daysWithExpenses++;
+                        if (dailyTotal > topDay.amount) {
+                            topDay.amount = dailyTotal;
+                            topDay.date = dateStr;
+                        }
+                    }
+                }
+
+                const avgSpend = daysWithExpenses > 0 ? (totalSpend / daysWithExpenses) : 0;
+
+                // Update the HTML elements with the calculated values
+                totalMonthlySpend.textContent = `₹${Math.round(totalSpend)}`;
+                avgDailySpend.textContent = `₹${Math.round(avgSpend)}`;
+                
+                if (topDay.date) {
+                    const dayOfMonth = new Date(topDay.date + 'T00:00:00').getDate();
+                    topSpendingDay.textContent = `Day ${dayOfMonth} (₹${topDay.amount})`;
+                } else {
+                    topSpendingDay.textContent = '--';
+                }
+
+                // Make the summary section visible
+                monthlySummarySection.style.display = 'block';
+            };
+
             const renderSpendLog = (spendLog) => {
                 spendLogList.innerHTML = '';
                 if (!spendLog || spendLog.length === 0) {
@@ -422,7 +484,6 @@
                     const dayCell = document.createElement('div');
                     const dayDate = new Date(year, month, i);
                     
-                    // <<< FINAL FIX: This now uses local time, matching getTodayDateString() perfectly.
                     const yearStr = dayDate.getFullYear();
                     const monthStr = (dayDate.getMonth() + 1).toString().padStart(2, '0');
                     const dayStr = dayDate.getDate().toString().padStart(2, '0');
@@ -443,6 +504,8 @@
                     dayCell.innerHTML = `<span>${i}</span>${spendHtml}`;
                     calendarBody.appendChild(dayCell);
                 }
+
+                calculateAndDisplayMonthlySummary(year, month);
             };
 
             const viewDate = (dateStr) => {
