@@ -305,11 +305,10 @@
             };
 
             // --- DATE HELPERS ---
-            // <<< FIX: This function now correctly uses the local timezone instead of UTC.
             function getTodayDateString() {
                 const today = new Date();
                 const year = today.getFullYear();
-                const month = (today.getMonth() + 1).toString().padStart(2, '0'); // +1 because months are 0-indexed
+                const month = (today.getMonth() + 1).toString().padStart(2, '0');
                 const day = today.getDate().toString().padStart(2, '0');
                 return `${year}-${month}-${day}`;
             }
@@ -422,7 +421,13 @@
                 for (let i = 1; i <= daysInMonth; i++) {
                     const dayCell = document.createElement('div');
                     const dayDate = new Date(year, month, i);
-                    const dateStr = dayDate.toISOString().split('T')[0];
+                    
+                    // <<< FINAL FIX: This now uses local time, matching getTodayDateString() perfectly.
+                    const yearStr = dayDate.getFullYear();
+                    const monthStr = (dayDate.getMonth() + 1).toString().padStart(2, '0');
+                    const dayStr = dayDate.getDate().toString().padStart(2, '0');
+                    const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+
                     dayCell.className = 'calendar-day';
                     dayCell.dataset.date = dateStr;
                     if (dateStr === getTodayDateString()) dayCell.classList.add('today');
