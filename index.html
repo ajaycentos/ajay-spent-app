@@ -127,7 +127,6 @@
         // --- FIREBASE IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // <<< FIX 1 of 2: Imported `deleteField` to help with data migration
         import { getFirestore, doc, onSnapshot, setDoc, getDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- FIREBASE CONFIG ---
@@ -253,27 +252,23 @@
                 const docRef = doc(db, "users", currentUserId);
 
                 unsubscribeFromFirestore = onSnapshot(docRef, (docSnap) => {
+                    let needsSave = false;
                     if (docSnap.exists()) {
                         const data = docSnap.data();
-                        // <<< FIX 2 of 2: This block now performs a one-time migration
-                        // It moves data from the old `habitHistory` field to the new `spendHistory` field.
-                        if (data.habitHistory) {
-                            console.log("Old data structure found. Migrating...");
-                            const migratedSpendHistory = {};
+                        // <<< FIX: Robust data loading and migration logic
+                        // Prioritize the new field, but fall back to the old one if it exists.
+                        if (data.spendHistory) {
+                            spendHistory = data.spendHistory;
+                        } else if (data.habitHistory) {
+                            console.log("Old data found, preparing to migrate...");
+                            const migratedData = {};
                             Object.keys(data.habitHistory).forEach(date => {
-                                migratedSpendHistory[date] = { spendLog: data.habitHistory[date].spendLog || [] };
+                                migratedData[date] = { spendLog: data.habitHistory[date].spendLog || [] };
                             });
-                            spendHistory = migratedSpendHistory;
-                            
-                            // This special write operation replaces the old field with the new one.
-                            const migrationRef = doc(db, "users", currentUserId);
-                            setDoc(migrationRef, {
-                                spendHistory: migratedSpendHistory,
-                                habitHistory: deleteField() 
-                            }, { merge: true });
-                            
+                            spendHistory = migratedData;
+                            needsSave = true; // Mark that we need to save to consolidate the data structure.
                         } else {
-                            spendHistory = data.spendHistory || {};
+                            spendHistory = {};
                         }
                     } else {
                         spendHistory = {};
@@ -282,6 +277,10 @@
                     const todayStr = getTodayDateString();
                     if (!spendHistory[todayStr]) {
                         spendHistory[todayStr] = { spendLog: [] };
+                        needsSave = true; // Also needs a save if today's entry is new.
+                    }
+
+                    if (needsSave) {
                         saveDataToFirestore();
                     }
                     
@@ -297,9 +296,15 @@
                 if (!currentUserId) return;
                 try {
                     const docRef = doc(db, "users", currentUserId);
-                    await setDoc(docRef, { spendHistory }, { merge: true });
+                    // <<< FIX: Robust save operation
+                    // Always saves to the new field and deletes the old one.
+                    await setDoc(docRef, {
+                        spendHistory: spendHistory,
+                        habitHistory: deleteField()
+                    }, { merge: true });
                 } catch (error) {
                     console.error("Error saving data to Firestore: ", error);
+                    alert("Error: Could not save data. Please check the console for details and your internet connection.");
                 }
             };
 
