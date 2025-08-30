@@ -25,7 +25,11 @@
         .calendar-day.other-month { color: #cbd5e1; pointer-events: none; }
         .calendar-day.today { font-weight: bold; border: 2px solid #ef4444; }
         .calendar-day.selected { background-color: #fee2e2; border: 2px solid #dc2626; }
-        .calendar-day .spend { font-size: 0.9rem; font-weight: 700; color: #ef4444; }
+        .calendar-day .spend {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #ef4444;
+        }
         #auth-overlay, #loader-overlay, #recurring-modal-overlay {
             background-color: rgba(241, 245, 249, 0.95);
             backdrop-filter: blur(8px);
@@ -196,7 +200,7 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 11.0 (FIXED) ---
+        // --- SCRIPT VERSION 12.0 (K-FORMATTING FIX) ---
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -306,9 +310,16 @@
             };
             const saveDataToFirestore = async () => { if (!currentUserId) return; try { const docRef = doc(db, "users", currentUserId); await setDoc(docRef, { spendHistory, recurringExpenses, habitHistory: deleteField() }, { merge: true }); } catch (error) { console.error("Error saving data to Firestore: ", error); alert("Error: Could not save data."); }};
 
-            // --- DATE HELPERS ---
+            // --- DATE & FORMATTING HELPERS ---
             function getTodayDateString() { const today = new Date(); return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`; }
             function formatDateForDisplay(dateStr) { const date = new Date(dateStr + 'T00:00:00'); return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }); }
+            function formatSpendForCalendar(amount) {
+                if (amount >= 1000) {
+                    // Divides by 1000, shows one decimal, and removes '.0' if it's a whole number
+                    return (amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+                }
+                return amount; // Returns the original amount if it's less than 1000
+            }
 
             // --- CORE LOGIC & CRUD OPERATIONS ---
             const calculateTotalSpend = (spendLog) => (!spendLog ? 0 : spendLog.reduce((sum, entry) => sum + entry.amount, 0));
@@ -377,14 +388,23 @@
                 });
             };
             const renderRecurringList = () => { recurringList.innerHTML = ''; if (recurringExpenses.length === 0) { recurringList.innerHTML = `<p class="text-center text-slate-500 text-xs p-2">No recurring expenses set.</p>`; return; } recurringExpenses.forEach(exp => { const li = document.createElement('li'); li.className = 'bg-white p-2 rounded-lg flex justify-between items-center text-sm'; li.innerHTML = `<div><p class="font-semibold">${exp.comment} - <span class="text-red-600">₹${exp.amount}</span></p><p class="text-xs text-slate-500">Day ${exp.day} of each month &bull; ${exp.category}</p></div><button class="action-btn delete-recurring-btn delete" data-id="${exp.id}">&times;</button>`; recurringList.appendChild(li); }); };
-            const renderCalendar = () => { calendarBody.innerHTML = ''; const year = calendarDate.getFullYear(); const month = calendarDate.getMonth(); monthYearElement.textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); for (let i = 0; i < firstDay; i++) { calendarBody.insertAdjacentHTML('beforeend', `<div class="calendar-day other-month"></div>`); } for (let i = 1; i <= daysInMonth; i++) { const dayCell = document.createElement('div'); const dayDate = new Date(year, month, i); const dateStr = `${dayDate.getFullYear()}-${(dayDate.getMonth() + 1).toString().padStart(2, '0')}-${dayDate.getDate().toString().padStart(2, '0')}`; dayCell.className = 'calendar-day'; dayCell.dataset.date = dateStr; if (dateStr === getTodayDateString()) dayCell.classList.add('today'); if (dateStr === selectedDateStr) dayCell.classList.add('selected'); let spendHtml = ''; if (spendHistory[dateStr]) { const totalSpend = calculateTotalSpend(spendHistory[dateStr].spendLog); if (totalSpend > 0) { spendHtml = `<span class="spend">₹${totalSpend}</span>`; }} dayCell.innerHTML = `<span>${i}</span>${spendHtml}`; calendarBody.appendChild(dayCell); } calculateAndDisplayMonthlySummary(year, month); };
+            const renderCalendar = () => {
+                calendarBody.innerHTML = ''; const year = calendarDate.getFullYear(); const month = calendarDate.getMonth(); monthYearElement.textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); for (let i = 0; i < firstDay; i++) { calendarBody.insertAdjacentHTML('beforeend', `<div class="calendar-day other-month"></div>`); } for (let i = 1; i <= daysInMonth; i++) { const dayCell = document.createElement('div'); const dayDate = new Date(year, month, i); const dateStr = `${dayDate.getFullYear()}-${(dayDate.getMonth() + 1).toString().padStart(2, '0')}-${dayDate.getDate().toString().padStart(2, '0')}`; dayCell.className = 'calendar-day'; dayCell.dataset.date = dateStr; if (dateStr === getTodayDateString()) dayCell.classList.add('today'); if (dateStr === selectedDateStr) dayCell.classList.add('selected'); let spendHtml = '';
+                    if (spendHistory[dateStr]) {
+                        const totalSpend = calculateTotalSpend(spendHistory[dateStr].spendLog);
+                        if (totalSpend > 0) {
+                            const formattedAmount = formatSpendForCalendar(totalSpend);
+                            spendHtml = `<span class="spend">₹${formattedAmount}</span>`;
+                        }
+                    }
+                dayCell.innerHTML = `<span>${i}</span>${spendHtml}`; calendarBody.appendChild(dayCell); } calculateAndDisplayMonthlySummary(year, month); };
 
             const viewDate = (dateStr) => {
                 if(editingExpenseId) cancelEditMode();
                 searchInput.value = ''; 
                 
-                selectedDateStr = dateStr; // FIX: Update the date string first
-                toggleSearchView(false); // Then, render the UI that depends on it
+                selectedDateStr = dateStr; 
+                toggleSearchView(false); 
                 
                 const dataForDay = spendHistory[dateStr] || { spendLog: [] };
                 
