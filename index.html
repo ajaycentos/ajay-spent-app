@@ -196,7 +196,7 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 10.0 (FINAL TYPO FIX) ---
+        // --- SCRIPT VERSION 11.0 (FIXED) ---
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -382,12 +382,12 @@
             const viewDate = (dateStr) => {
                 if(editingExpenseId) cancelEditMode();
                 searchInput.value = ''; 
-                toggleSearchView(false); 
                 
-                selectedDateStr = dateStr;
+                selectedDateStr = dateStr; // FIX: Update the date string first
+                toggleSearchView(false); // Then, render the UI that depends on it
+                
                 const dataForDay = spendHistory[dateStr] || { spendLog: [] };
                 
-                // This is the single line with the corrected typo
                 const totalSpend = calculateTotalSpend(dataForDay.spendLog);
                 totalSpendDisplay.textContent = `₹${totalSpend}`;
                 
