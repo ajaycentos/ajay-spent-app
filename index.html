@@ -160,10 +160,23 @@
             
             <form id="add-recurring-form" class="space-y-2 p-3 bg-slate-50 rounded-lg">
                 <p class="text-sm font-semibold">Add New</p>
-                <input type="text" id="recurring-comment-input" placeholder="Expense Name (e.g., Rent)" required class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="text" id="recurring-comment-input" placeholder="Expense Name (e.g., Insurance)" required class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <input type="number" id="recurring-amount-input" placeholder="Amount (₹)" required class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <input type="number" id="recurring-day-input" placeholder="Day of Month (1-31)" required min="1" max="31" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                 <select id="recurring-category-select" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                
+                <select id="recurring-frequency-select" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="monthly">Monthly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+                
+                <div id="monthly-input-group">
+                    <input type="number" id="recurring-day-input" placeholder="Day of Month (1-31)" required min="1" max="31" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            
+                <div id="yearly-input-group" style="display: none;">
+                    <input type="text" id="recurring-date-input" placeholder="Date (MM-DD)" required pattern="\d{2}-\d{2}" title="Please use MM-DD format" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            
+                <select id="recurring-category-select" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option>Bills</option><option>Entertainment</option><option>Food</option><option>Transport</option><option>Shopping</option><option>Other</option>
                 </select>
                 <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 text-sm">Add Recurring</button>
@@ -200,7 +213,7 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 12.0 (K-FORMATTING FIX) ---
+        // --- SCRIPT VERSION 13.0 (YEARLY RECURRING) ---
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -266,6 +279,10 @@
             const recurringCategorySelect = document.getElementById('recurring-category-select');
             const recurringList = document.getElementById('recurring-list');
             const exportCsvButton = document.getElementById('export-csv-button');
+            const recurringFrequencySelect = document.getElementById('recurring-frequency-select');
+            const monthlyInputGroup = document.getElementById('monthly-input-group');
+            const yearlyInputGroup = document.getElementById('yearly-input-group');
+            const recurringDateInput = document.getElementById('recurring-date-input');
 
             // --- APP STATE ---
             let spendHistory = {};
@@ -315,10 +332,9 @@
             function formatDateForDisplay(dateStr) { const date = new Date(dateStr + 'T00:00:00'); return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }); }
             function formatSpendForCalendar(amount) {
                 if (amount >= 1000) {
-                    // Divides by 1000, shows one decimal, and removes '.0' if it's a whole number
                     return (amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
                 }
-                return amount; // Returns the original amount if it's less than 1000
+                return amount;
             }
 
             // --- CORE LOGIC & CRUD OPERATIONS ---
@@ -328,7 +344,40 @@
             const deleteSpend = (dateStr, expenseId) => { const log = spendHistory[dateStr]?.spendLog; if (!log) return; spendHistory[dateStr].spendLog = log.filter(e => e.id !== expenseId); saveDataToFirestore(); viewDate(selectedDateStr); };
 
             // --- RECURRING EXPENSE LOGIC ---
-            const applyRecurringExpenses = () => { let changed = false; const today = new Date(); const currentMonth = today.getMonth(); const currentYear = today.getFullYear(); recurringExpenses.forEach(expense => { const expenseDate = new Date(currentYear, currentMonth, expense.day); if (expenseDate <= today) { const dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${expense.day.toString().padStart(2, '0')}`; if (!spendHistory[dateStr]) spendHistory[dateStr] = { spendLog: [] }; if (!spendHistory[dateStr].spendLog.some(e => e.recurringId === expense.id)) { console.log(`Applying recurring expense: ${expense.comment}`); addSpend(dateStr, expense.amount, expense.category, 'Auto', expense.comment, true, expense.id); changed = true; } } }); return changed; };
+            const applyRecurringExpenses = () => {
+                let changed = false;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Normalize today's date for accurate comparison
+                const currentYear = today.getFullYear();
+    
+                recurringExpenses.forEach(expense => {
+                    let expenseDate;
+                    let dateStr;
+    
+                    if (expense.frequency === 'yearly' && expense.date) {
+                        const [month, day] = expense.date.split('-').map(Number);
+                        expenseDate = new Date(currentYear, month - 1, day);
+                        dateStr = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    } else { // Default to monthly
+                        const currentMonth = today.getMonth();
+                        expenseDate = new Date(currentYear, currentMonth, expense.day);
+                        dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(expense.day).padStart(2, '0')}`;
+                    }
+    
+                    // Check if the calculated expense date is in the past and not yet logged
+                    if (expenseDate <= today) {
+                        if (!spendHistory[dateStr]) {
+                            spendHistory[dateStr] = { spendLog: [] };
+                        }
+                        if (!spendHistory[dateStr].spendLog.some(e => e.recurringId === expense.id)) {
+                            console.log(`Applying recurring expense: ${expense.comment} for date ${dateStr}`);
+                            addSpend(dateStr, expense.amount, expense.category, 'Auto', expense.comment, true, expense.id);
+                            changed = true;
+                        }
+                    }
+                });
+                return changed;
+            };
             
             // --- DATA EXPORT ---
             const sanitizeCSVField = (field) => { const str = String(field == null ? '' : field); if (str.includes(',') || str.includes('"') || str.includes('\n')) { return `"${str.replace(/"/g, '""')}"`; } return str; };
@@ -387,7 +436,28 @@
                     spendLogList.appendChild(li);
                 });
             };
-            const renderRecurringList = () => { recurringList.innerHTML = ''; if (recurringExpenses.length === 0) { recurringList.innerHTML = `<p class="text-center text-slate-500 text-xs p-2">No recurring expenses set.</p>`; return; } recurringExpenses.forEach(exp => { const li = document.createElement('li'); li.className = 'bg-white p-2 rounded-lg flex justify-between items-center text-sm'; li.innerHTML = `<div><p class="font-semibold">${exp.comment} - <span class="text-red-600">₹${exp.amount}</span></p><p class="text-xs text-slate-500">Day ${exp.day} of each month &bull; ${exp.category}</p></div><button class="action-btn delete-recurring-btn delete" data-id="${exp.id}">&times;</button>`; recurringList.appendChild(li); }); };
+            const renderRecurringList = () => {
+                recurringList.innerHTML = '';
+                if (recurringExpenses.length === 0) {
+                    recurringList.innerHTML = `<p class="text-center text-slate-500 text-xs p-2">No recurring expenses set.</p>`;
+                    return;
+                }
+                recurringExpenses.forEach(exp => {
+                    const li = document.createElement('li');
+                    li.className = 'bg-white p-2 rounded-lg flex justify-between items-center text-sm';
+                    let scheduleText = '';
+                    if (exp.frequency === 'yearly' && exp.date) {
+                        const [month, day] = exp.date.split('-');
+                        const tempDate = new Date(2000, month - 1, day);
+                        const monthName = tempDate.toLocaleString('en-US', { month: 'short' });
+                        scheduleText = `Yearly on ${monthName} ${day}`;
+                    } else { // Default to monthly
+                        scheduleText = `Day ${exp.day} of each month`;
+                    }
+                    li.innerHTML = `<div><p class="font-semibold">${exp.comment} - <span class="text-red-600">₹${exp.amount}</span></p><p class="text-xs text-slate-500">${scheduleText} &bull; ${exp.category}</p></div><button class="action-btn delete-recurring-btn delete" data-id="${exp.id}">&times;</button>`;
+                    recurringList.appendChild(li);
+                });
+            };
             const renderCalendar = () => {
                 calendarBody.innerHTML = ''; const year = calendarDate.getFullYear(); const month = calendarDate.getMonth(); monthYearElement.textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); for (let i = 0; i < firstDay; i++) { calendarBody.insertAdjacentHTML('beforeend', `<div class="calendar-day other-month"></div>`); } for (let i = 1; i <= daysInMonth; i++) { const dayCell = document.createElement('div'); const dayDate = new Date(year, month, i); const dateStr = `${dayDate.getFullYear()}-${(dayDate.getMonth() + 1).toString().padStart(2, '0')}-${dayDate.getDate().toString().padStart(2, '0')}`; dayCell.className = 'calendar-day'; dayCell.dataset.date = dateStr; if (dateStr === getTodayDateString()) dayCell.classList.add('today'); if (dateStr === selectedDateStr) dayCell.classList.add('selected'); let spendHtml = '';
                     if (spendHistory[dateStr]) {
@@ -441,7 +511,51 @@
             nextMonthBtn.addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth() + 1); renderCalendar(); });
             manageRecurringButton.addEventListener('click', () => { recurringModalOverlay.style.display = 'flex'; });
             closeRecurringModalButton.addEventListener('click', () => { recurringModalOverlay.style.display = 'none'; });
-            addRecurringForm.addEventListener('submit', (e) => { e.preventDefault(); const newRecurring = { id: Date.now(), comment: recurringCommentInput.value, amount: parseInt(recurringAmountInput.value), day: parseInt(recurringDayInput.value), category: recurringCategorySelect.value, }; recurringExpenses.push(newRecurring); saveDataToFirestore(); renderRecurringList(); addRecurringForm.reset(); });
+            
+            addRecurringForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const frequency = recurringFrequencySelect.value;
+                const newRecurring = {
+                    id: Date.now(),
+                    comment: recurringCommentInput.value,
+                    amount: parseInt(recurringAmountInput.value),
+                    category: recurringCategorySelect.value,
+                    frequency: frequency
+                };
+    
+                if (frequency === 'monthly') {
+                    newRecurring.day = parseInt(recurringDayInput.value);
+                } else if (frequency === 'yearly') {
+                    if (!/^\d{2}-\d{2}$/.test(recurringDateInput.value)) {
+                        alert("Please use MM-DD format for the yearly date.");
+                        return;
+                    }
+                    newRecurring.date = recurringDateInput.value; // e.g., "09-01"
+                }
+    
+                recurringExpenses.push(newRecurring);
+                saveDataToFirestore();
+                renderRecurringList();
+                addRecurringForm.reset();
+                // Reset form display to default
+                monthlyInputGroup.style.display = 'block';
+                yearlyInputGroup.style.display = 'none';
+            });
+
+            recurringFrequencySelect.addEventListener('change', () => {
+                if (recurringFrequencySelect.value === 'monthly') {
+                    monthlyInputGroup.style.display = 'block';
+                    yearlyInputGroup.style.display = 'none';
+                    recurringDayInput.required = true;
+                    recurringDateInput.required = false;
+                } else {
+                    monthlyInputGroup.style.display = 'none';
+                    yearlyInputGroup.style.display = 'block';
+                    recurringDayInput.required = false;
+                    recurringDateInput.required = true;
+                }
+            });
+
             recurringList.addEventListener('click', (e) => { const deleteBtn = e.target.closest('.delete-recurring-btn'); if (deleteBtn && confirm('Delete this recurring expense?')) { recurringExpenses = recurringExpenses.filter(exp => exp.id !== parseInt(deleteBtn.dataset.id)); saveDataToFirestore(); renderRecurringList(); }});
             searchInput.addEventListener('input', () => {
                 const query = searchInput.value.toLowerCase().trim();
