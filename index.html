@@ -53,7 +53,7 @@
 
     <main id="app-container" class="w-full max-w-md mx-auto p-4" style="display: none;">
         <header class="text-center mb-8 relative">
-            <h1 class="text-3xl font-bold text-slate-900">Daily Spend Tracker</h1>
+            <h1 class="text-3xl font-bold text-slate-900">Spend Tracker</h1>
             <p id="current-date" class="text-slate-500"></p>
             <div id="user-info" class="absolute top-0 right-0 text-right">
                 <button id="logout-button" class="text-sm text-indigo-600 hover:text-indigo-800 font-semibold">Logout</button>
@@ -89,12 +89,13 @@
                     </select>
                     <input type="text" id="spend-comment-input" placeholder="Comment (optional)" class="w-full bg-slate-100 border border-slate-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     <div class="flex gap-3">
-                        <button type="button" id="cancel-edit-button" style="display: none;" class="flex-1 bg-slate-200 text-slate-700 font-semibold py-3 px-5 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 transition">Cancel</button>
-                        <button type="submit" id="submit-spend-button" class="flex-grow bg-red-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition shadow">Log Expense</button>
+                        <button type="button" id="cancel-edit-button" style="display: none;" class="flex-1 bg-slate-200 text-slate-700 font-semibold py-3 px-5 rounded-lg hover:bg-slate-300 transition">Cancel</button>
+                        <button type="submit" id="submit-spend-button" class="flex-grow bg-red-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-red-700 transition shadow">Log Expense</button>
                     </div>
                 </form>
             </section>
-             <div class="text-center mt-4">
+
+            <div class="text-center mt-4">
                 <button id="manage-recurring-button" class="text-indigo-600 text-sm font-semibold hover:text-indigo-800">Manage Recurring</button>
             </div>
             
@@ -125,21 +126,16 @@
 
         <section id="monthly-summary-section" class="mt-8" style="display: none;">
             <h2 class="text-lg font-semibold mb-3 px-2">Monthly Summary</h2>
-            <div class="bg-white p-4 rounded-2xl shadow-md space-y-3 text-sm">
+            <div class="bg-white p-4 rounded-2xl shadow-md space-y-4 text-sm">
                 <div class="flex justify-between items-center">
                     <span class="text-slate-500">Total Monthly Spend:</span>
                     <span id="total-monthly-spend" class="font-bold text-xl text-red-500">₹0</span>
                 </div>
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center border-b pb-2">
                     <span class="text-slate-500">Average Daily Spend:</span>
                     <span id="avg-daily-spend" class="font-bold text-slate-700">₹0</span>
                 </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-slate-500">Busiest Spending Day:</span>
-                    <span id="top-spending-day" class="font-bold text-slate-700">--</span>
-                </div>
-                <hr>
-                <div id="category-summary-container"></div>
+                <div id="category-summary-container" class="space-y-3"></div>
                 <div class="pt-2 text-center">
                     <button id="export-csv-button" class="bg-green-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-green-700 text-sm transition shadow-sm">Export to CSV</button>
                 </div>
@@ -147,43 +143,42 @@
         </section>
         
         <footer class="text-center mt-8">
-            <button id="reset-button" class="text-slate-500 text-sm hover:text-indigo-600">Reset today's data</button>
+            <button id="reset-button" class="text-slate-400 text-xs hover:text-red-600">Reset today's local data</button>
         </footer>
     </main>
     
     <div id="recurring-modal-overlay" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display: none;">
         <div class="w-full max-w-sm bg-white p-6 rounded-2xl shadow-xl space-y-4">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Recurring Expenses</h2>
-                <button id="close-recurring-modal-button" class="text-slate-500 hover:text-slate-800">&times;</button>
+                <h2 class="text-xl font-bold">Recurring</h2>
+                <button id="close-recurring-modal-button" class="text-slate-500 hover:text-slate-800 text-2xl">&times;</button>
             </div>
             
             <form id="add-recurring-form" class="space-y-2 p-3 bg-slate-50 rounded-lg">
-                <p class="text-sm font-semibold">Add New</p>
-                <input type="text" id="recurring-comment-input" placeholder="Expense Name (e.g., Insurance)" required class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <input type="number" id="recurring-amount-input" placeholder="Amount (₹)" required class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="text" id="recurring-comment-input" placeholder="Expense Name" required class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm">
+                <input type="number" id="recurring-amount-input" placeholder="Amount (₹)" required class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm">
                 
-                <select id="recurring-frequency-select" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select id="recurring-frequency-select" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm">
                     <option value="monthly">Monthly</option>
                     <option value="yearly">Yearly</option>
                 </select>
                 
                 <div id="monthly-input-group">
-                    <input type="number" id="recurring-day-input" placeholder="Day of Month (1-31)" required min="1" max="31" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="number" id="recurring-day-input" placeholder="Day of Month (1-31)" min="1" max="31" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm">
                 </div>
             
                 <div id="yearly-input-group" style="display: none;">
-                    <input type="text" id="recurring-date-input" placeholder="Date (MM-DD)" required pattern="\d{2}-\d{2}" title="Please use MM-DD format" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="recurring-date-input" placeholder="Date (MM-DD)" pattern="\d{2}-\d{2}" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm">
                 </div>
             
-                <select id="recurring-category-select" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select id="recurring-category-select" class="w-full bg-white border border-slate-300 rounded-lg py-2 px-3 text-sm">
                     <option>Bills</option><option>Entertainment</option><option>Food</option><option>Transport</option><option>Shopping</option><option>Other</option>
                 </select>
                 <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 text-sm">Add Recurring</button>
             </form>
 
-            <div>
-                <p class="text-sm font-semibold mb-2">Existing</p>
+            <div class="max-h-48 overflow-y-auto">
+                <p class="text-xs font-bold text-slate-400 uppercase mb-2">Active Subscriptions</p>
                 <ul id="recurring-list" class="space-y-2"></ul>
             </div>
         </div>
@@ -201,7 +196,7 @@
                 <p class="text-xs text-slate-400">or</p>
                 <form id="email-form">
                     <input type="email" id="email-input" placeholder="Enter your email" required class="w-full bg-slate-100 border border-slate-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition mb-3">
-                    <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition shadow">Continue with Email</button>
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-5 rounded-lg hover:bg-indigo-700 transition shadow">Continue with Email</button>
                 </form>
             </div>
              <p id="auth-error" class="text-red-500 text-sm mt-4 h-4"></p>
@@ -213,19 +208,17 @@
     </div>
 
     <script type="module">
-        // --- SCRIPT VERSION 13.0 (YEARLY RECURRING) ---
-        
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, getDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
         const firebaseConfig = {
-			apiKey: "AIzaSyD8rRXlt8gwrKMIgLTwhvejWCiIPOqEMl0",
-            authDomain: "my-habit-tracker-fab33.firebaseapp.com",
-            projectId: "my-habit-tracker-fab33",
-            storageBucket: "my-habit-tracker-fab33.appspot.com",
-            messagingSenderId: "76678091008",
-            appId: "1:76678091008:web:beb64e97a88f1f04fa63e5"
+            apiKey: "AIzaSyAjn56bxqUEISFL1sGaSlh1AUDM60VIVV0",
+            authDomain: "aj-firebase-projects.firebaseapp.com",
+            projectId: "aj-firebase-projects",
+            storageBucket: "aj-firebase-projects.firebasestorage.app",
+            messagingSenderId: "124595913032",
+            appId: "1:124595913032:web:c56fe0bb86a49e83f7b37d"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -267,7 +260,6 @@
             const monthlySummarySection = document.getElementById('monthly-summary-section');
             const totalMonthlySpend = document.getElementById('total-monthly-spend');
             const avgDailySpend = document.getElementById('avg-daily-spend');
-            const topSpendingDay = document.getElementById('top-spending-day');
             const categorySummaryContainer = document.getElementById('category-summary-container');
             const manageRecurringButton = document.getElementById('manage-recurring-button');
             const recurringModalOverlay = document.getElementById('recurring-modal-overlay');
@@ -294,284 +286,351 @@
             let editingExpenseId = null; 
             const categoryColors = { 'Food': 'bg-red-100 text-red-800', 'Transport': 'bg-blue-100 text-blue-800', 'Shopping': 'bg-yellow-100 text-yellow-800', 'Bills': 'bg-purple-100 text-purple-800', 'Entertainment': 'bg-green-100 text-green-800', 'Other': 'bg-slate-200 text-slate-800'};
 
-            // --- AUTHENTICATION & AUTHORIZATION ---
-            onAuthStateChanged(auth, async (user) => { if (user) { loaderOverlay.style.display = 'flex'; const isAuthorized = await checkAuthorization(user); if (isAuthorized) { currentUserId = user.uid; authOverlay.style.display = 'none'; appContainer.style.display = 'block'; loadDataFromFirestore(); } else { loaderOverlay.style.display = 'none'; } } else { currentUserId = null; if (unsubscribeFromFirestore) unsubscribeFromFirestore(); spendHistory = {}; authOverlay.style.display = 'flex'; appContainer.style.display = 'none'; loaderOverlay.style.display = 'none'; }});
-            const checkAuthorization = async (user) => { try { const docSnap = await getDoc(doc(db, "config", "whitelist")); if (docSnap.exists() && docSnap.data().allowedEmails?.includes(user.email)) return true; } catch(e) { console.error("Auth check error:", e); } authError.textContent = "You are not authorized."; signOut(auth); return false; };
-            const actionCodeSettings = { url: window.location.href, handleCodeInApp: true };
-            googleSigninButton.addEventListener('click', async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (error) { console.error("Google Sign-In Error:", error); authError.textContent = "Could not sign in with Google."; }});
-            emailForm.addEventListener('submit', async (e) => { e.preventDefault(); const email = emailInput.value; loaderOverlay.style.display = 'flex'; authError.textContent = ''; try { await sendSignInLinkToEmail(auth, email, actionCodeSettings); window.localStorage.setItem('emailForSignIn', email); alert(`A sign-in link has been sent to ${email}.`); } catch (error) { console.error("Email Sign-In Error:", error); authError.textContent = error.message; } finally { loaderOverlay.style.display = 'none'; }});
+            // --- AUTHENTICATION ---
+            onAuthStateChanged(auth, async (user) => { 
+                if (user) { 
+                    loaderOverlay.style.display = 'flex'; 
+                    const isAuthorized = await checkAuthorization(user); 
+                    if (isAuthorized) { 
+                        currentUserId = user.uid; 
+                        authOverlay.style.display = 'none'; 
+                        appContainer.style.display = 'block'; 
+                        loadDataFromFirestore(); 
+                    } else { 
+                        loaderOverlay.style.display = 'none'; 
+                    } 
+                } else { 
+                    currentUserId = null; 
+                    if (unsubscribeFromFirestore) unsubscribeFromFirestore(); 
+                    spendHistory = {}; 
+                    authOverlay.style.display = 'flex'; 
+                    appContainer.style.display = 'none'; 
+                    loaderOverlay.style.display = 'none'; 
+                }
+            });
+
+            const checkAuthorization = async (user) => { 
+                try { 
+                    const docSnap = await getDoc(doc(db, "config", "whitelist")); 
+                    if (docSnap.exists() && docSnap.data().allowedEmails?.includes(user.email)) return true; 
+                } catch(e) { 
+                    console.error("Auth check error:", e); 
+                } 
+                authError.textContent = "You are not authorized."; 
+                signOut(auth); 
+                return false; 
+            };
+
+            googleSigninButton.addEventListener('click', async () => { 
+                try { await signInWithPopup(auth, new GoogleAuthProvider()); } 
+                catch (error) { authError.textContent = "Sign-in failed."; }
+            });
+
+            emailForm.addEventListener('submit', async (e) => { 
+                e.preventDefault(); 
+                const email = emailInput.value; 
+                loaderOverlay.style.display = 'flex'; 
+                try { 
+                    await sendSignInLinkToEmail(auth, email, { url: window.location.href, handleCodeInApp: true }); 
+                    window.localStorage.setItem('emailForSignIn', email); 
+                    alert(`Sign-in link sent to ${email}.`); 
+                } catch (error) { authError.textContent = error.message; } 
+                finally { loaderOverlay.style.display = 'none'; }
+            });
+
             logoutButton.addEventListener('click', () => { signOut(auth); });
-            const handleEmailSignIn = async () => { if (isSignInWithEmailLink(auth, window.location.href)) { let email = window.localStorage.getItem('emailForSignIn') || window.prompt('Please provide your email for confirmation'); if (!email) return; loaderOverlay.style.display = 'flex'; try { await signInWithEmailLink(auth, email, window.location.href); window.localStorage.removeItem('emailForSignIn'); window.history.replaceState({}, document.title, window.location.pathname); } catch (error) { console.error("Email Link Sign-In Error:", error); authError.textContent = "Sign-in link is invalid or expired."; } finally { loaderOverlay.style.display = 'none'; }}};
 
             // --- FIRESTORE DATA HANDLING ---
             const loadDataFromFirestore = () => {
                 if (!currentUserId) return;
-                loaderOverlay.style.display = 'flex';
-                const docRef = doc(db, "users", currentUserId);
-                unsubscribeFromFirestore = onSnapshot(docRef, (docSnap) => {
-                    let needsSave = false;
+                unsubscribeFromFirestore = onSnapshot(doc(db, "users", currentUserId), (docSnap) => {
                     if (docSnap.exists()) {
                         const data = docSnap.data();
                         recurringExpenses = data.recurringExpenses || [];
-                        if (data.spendHistory) { spendHistory = data.spendHistory; }
-                        else if (data.habitHistory) { console.log("Old data found, migrating..."); const migratedData = {}; Object.keys(data.habitHistory).forEach(date => { migratedData[date] = { spendLog: data.habitHistory[date].spendLog || [] }; }); spendHistory = migratedData; needsSave = true; }
-                        else { spendHistory = {}; }
-                    } else { spendHistory = {}; recurringExpenses = []; }
-                    if (!spendHistory[getTodayDateString()]) { spendHistory[getTodayDateString()] = { spendLog: [] }; needsSave = true; }
-                    if (applyRecurringExpenses()) { needsSave = true; }
-                    if (needsSave) { saveDataToFirestore(); }
+                        spendHistory = data.spendHistory || {};
+                    }
+                    
+                    if (applyRecurringExpenses()) { saveDataToFirestore(); }
+                    
                     renderRecurringList();
                     viewDate(selectedDateStr);
                     loaderOverlay.style.display = 'none';
-                }, (error) => { console.error("Firestore read error:", error); loaderOverlay.style.display = 'none'; });
+                });
             };
-            const saveDataToFirestore = async () => { if (!currentUserId) return; try { const docRef = doc(db, "users", currentUserId); await setDoc(docRef, { spendHistory, recurringExpenses, habitHistory: deleteField() }, { merge: true }); } catch (error) { console.error("Error saving data to Firestore: ", error); alert("Error: Could not save data."); }};
 
-            // --- DATE & FORMATTING HELPERS ---
-            function getTodayDateString() { const today = new Date(); return `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`; }
-            function formatDateForDisplay(dateStr) { const date = new Date(dateStr + 'T00:00:00'); return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }); }
-            function formatSpendForCalendar(amount) {
-                if (amount >= 1000) {
-                    return (amount / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-                }
-                return amount;
+            const saveDataToFirestore = async () => { 
+                if (!currentUserId) return; 
+                try { 
+                    await setDoc(doc(db, "users", currentUserId), { spendHistory, recurringExpenses }, { merge: true }); 
+                } catch (error) { console.error("Save error:", error); }
+            };
+
+            // --- DATE HELPERS ---
+            function getTodayDateString() { 
+                const d = new Date(); 
+                return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`; 
+            }
+            function formatDateForDisplay(dateStr) { 
+                return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' }); 
             }
 
-            // --- CORE LOGIC & CRUD OPERATIONS ---
-            const calculateTotalSpend = (spendLog) => (!spendLog ? 0 : spendLog.reduce((sum, entry) => sum + entry.amount, 0));
-            const addSpend = (dateStr, amount, category, method, comment, isRecurring = false, recurringId = null) => { if (!spendHistory[dateStr]) spendHistory[dateStr] = { spendLog: [] }; const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit'}); spendHistory[dateStr].spendLog.push({ id: Date.now(), amount, category, method, comment, time, isRecurring, recurringId }); saveDataToFirestore(); viewDate(selectedDateStr); };
-            const updateSpend = (dateStr, expenseId, newData) => { const log = spendHistory[dateStr]?.spendLog; if (!log) return; const expenseIndex = log.findIndex(e => e.id === expenseId); if (expenseIndex > -1) { log[expenseIndex] = { ...log[expenseIndex], ...newData }; saveDataToFirestore(); viewDate(selectedDateStr); }};
-            const deleteSpend = (dateStr, expenseId) => { const log = spendHistory[dateStr]?.spendLog; if (!log) return; spendHistory[dateStr].spendLog = log.filter(e => e.id !== expenseId); saveDataToFirestore(); viewDate(selectedDateStr); };
-
-            // --- RECURRING EXPENSE LOGIC ---
+            // --- RECURRING LOGIC ---
             const applyRecurringExpenses = () => {
                 let changed = false;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0); // Normalize today's date for accurate comparison
-                const currentYear = today.getFullYear();
-    
+                const todayStr = getTodayDateString();
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth();
+
                 recurringExpenses.forEach(expense => {
-                    let expenseDate;
                     let dateStr;
-    
                     if (expense.frequency === 'yearly' && expense.date) {
-                        const [month, day] = expense.date.split('-').map(Number);
-                        expenseDate = new Date(currentYear, month - 1, day);
-                        dateStr = `${currentYear}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    } else { // Default to monthly
-                        const currentMonth = today.getMonth();
-                        expenseDate = new Date(currentYear, currentMonth, expense.day);
-                        dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(expense.day).padStart(2, '0')}`;
+                        dateStr = `${currentYear}-${expense.date}`;
+                    } else {
+                        dateStr = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${expense.day.toString().padStart(2, '0')}`;
                     }
-    
-                    // Check if the calculated expense date is in the past and not yet logged
-                    if (expenseDate <= today) {
-                        if (!spendHistory[dateStr]) {
-                            spendHistory[dateStr] = { spendLog: [] };
-                        }
+
+                    if (dateStr <= todayStr) {
+                        if (!spendHistory[dateStr]) spendHistory[dateStr] = { spendLog: [] };
                         if (!spendHistory[dateStr].spendLog.some(e => e.recurringId === expense.id)) {
-                            console.log(`Applying recurring expense: ${expense.comment} for date ${dateStr}`);
-                            addSpend(dateStr, expense.amount, expense.category, 'Auto', expense.comment, true, expense.id);
+                            spendHistory[dateStr].spendLog.push({ 
+                                id: Date.now() + Math.random(), 
+                                amount: expense.amount, 
+                                category: expense.category, 
+                                method: 'Auto', 
+                                comment: `[Recurring] ${expense.comment}`, 
+                                time: "00:01 AM", 
+                                isRecurring: true, 
+                                recurringId: expense.id 
+                            });
                             changed = true;
                         }
                     }
                 });
                 return changed;
             };
-            
-            // --- DATA EXPORT ---
-            const sanitizeCSVField = (field) => { const str = String(field == null ? '' : field); if (str.includes(',') || str.includes('"') || str.includes('\n')) { return `"${str.replace(/"/g, '""')}"`; } return str; };
-            const exportMonthToCSV = () => {
-                const year = calendarDate.getFullYear(); const month = calendarDate.getMonth();
-                const monthName = calendarDate.toLocaleDateString('en-US', { month: 'long' });
-                let expensesToExport = [];
-                for (let i = 1; i <= new Date(year, month + 1, 0).getDate(); i++) {
-                    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
-                    if (spendHistory[dateStr]?.spendLog.length > 0) {
-                        spendHistory[dateStr].spendLog.forEach(expense => { expensesToExport.push({ date: dateStr, ...expense }); });
-                    }
-                }
-                if (expensesToExport.length === 0) { alert(`No expenses to export for ${monthName} ${year}.`); return; }
-                const headers = ["Date", "Category", "Amount", "Method", "Comment"];
-                let csvContent = headers.join(",") + "\n";
-                expensesToExport.forEach(exp => { const row = [exp.date, exp.category || 'Other', exp.amount, exp.method, exp.comment || '']; csvContent += row.map(sanitizeCSVField).join(",") + "\n"; });
-                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", `expenses-${monthName}-${year}.csv`);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
 
-            // --- UI & RENDERING ---
-            const startEditMode = (expenseId, date) => { const expense = spendHistory[date]?.spendLog.find(e => e.id === expenseId); if (!expense) return; editingExpenseId = expenseId; selectedDateStr = date; spendAmountInput.value = expense.amount; spendCategorySelect.value = expense.category || 'Other'; spendMethodSelect.value = expense.method; spendCommentInput.value = expense.comment; formHeader.textContent = "Edit Expense"; submitSpendButton.textContent = "Update Expense"; submitSpendButton.classList.replace('bg-red-600', 'bg-indigo-600'); cancelEditButton.style.display = 'block'; };
-            const cancelEditMode = () => { editingExpenseId = null; addSpendForm.reset(); formHeader.textContent = "Log Expense"; submitSpendButton.textContent = "Log Expense"; submitSpendButton.classList.replace('bg-indigo-600', 'bg-red-600'); cancelEditButton.style.display = 'none'; };
-            
-            const calculateAndDisplayMonthlySummary = (year, month) => {
-                let totalSpend = 0, daysWithExpenses = 0, topDay = { date: null, amount: 0 }; const categoryTotals = {};
-                for (let i = 1; i <= new Date(year, month + 1, 0).getDate(); i++) {
-                    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
-                    if (spendHistory[dateStr]?.spendLog.length > 0) {
-                        let dailyTotal = 0;
-                        spendHistory[dateStr].spendLog.forEach(entry => { dailyTotal += entry.amount; const category = entry.category || 'Other'; categoryTotals[category] = (categoryTotals[category] || 0) + entry.amount; });
-                        totalSpend += dailyTotal; daysWithExpenses++;
-                        if (dailyTotal > topDay.amount) { topDay = { date: dateStr, amount: dailyTotal }; }
-                    }
-                }
-                const avgSpend = daysWithExpenses > 0 ? (totalSpend / daysWithExpenses) : 0;
-                totalMonthlySpend.textContent = `₹${Math.round(totalSpend)}`; avgDailySpend.textContent = `₹${Math.round(avgSpend)}`; topSpendingDay.textContent = topDay.date ? `Day ${new Date(topDay.date + 'T00:00:00').getDate()} (₹${topDay.amount})` : '--';
-                categorySummaryContainer.innerHTML = ''; const sortedCategories = Object.entries(categoryTotals).sort(([,a],[,b]) => b-a);
-                if (sortedCategories.length > 0) { sortedCategories.forEach(([category, amount]) => { const div = document.createElement('div'); div.className = 'flex justify-between items-center'; div.innerHTML = `<span class="flex items-center gap-2"><span class="category-tag ${categoryColors[category] || categoryColors['Other']}">${category}</span></span><span class="font-semibold">₹${Math.round(amount)}</span>`; categorySummaryContainer.appendChild(div); });
-                } else { categorySummaryContainer.innerHTML = '<p class="text-slate-400 text-center">No expenses to categorize this month.</p>'; }
-                monthlySummarySection.style.display = 'block';
-            };
+            // --- UI RENDERING ---
+            const calculateTotalSpend = (log) => (log ? log.reduce((sum, e) => sum + e.amount, 0) : 0);
 
             const renderSpendLog = (spendLog, isSearchResult = false) => {
-                spendLogList.innerHTML = ''; if (!spendLog || spendLog.length === 0) { spendLogList.innerHTML = `<p class="text-center text-slate-500 p-4">No expenses found.</p>`; return; }
-                spendLog.forEach(entry => { const li = document.createElement('li'); li.className = `bg-white p-3 rounded-lg flex justify-between items-start gap-2 ${entry.isRecurring ? 'opacity-70 border-l-4 border-indigo-300' : ''}`; const category = entry.category || 'Other'; const dateDisplay = isSearchResult ? `<p class="text-xs font-semibold text-indigo-600 mb-1">${formatDateForDisplay(entry.date)}</p>` : '';
-                    li.innerHTML = `<div class="flex-grow">${dateDisplay}<div class="flex justify-between items-start"><span class="font-bold text-lg text-red-600">₹${entry.amount}</span><span class="category-tag ${categoryColors[category] || categoryColors['Other']}">${category}</span></div><p class="text-slate-600 text-sm mt-1">${entry.comment || '&nbsp;'}</p><p class="text-right text-xs text-slate-400 mt-1">${entry.isRecurring ? 'Auto-logged' : entry.time} &bull; ${entry.method}</p></div><div class="flex flex-col">${!entry.isRecurring ? `<button title="Edit" class="action-btn edit-btn" data-id="${entry.id}" data-date="${entry.date || selectedDateStr}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg></button>` : ''}<button title="Delete" class="action-btn delete-btn delete" data-id="${entry.id}" data-date="${entry.date || selectedDateStr}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg></button></div>`;
+                spendLogList.innerHTML = '';
+                if (!spendLog || spendLog.length === 0) {
+                    spendLogList.innerHTML = `<p class="text-center text-slate-400 p-8 text-sm">No expenses logged.</p>`;
+                    return;
+                }
+                spendLog.forEach(entry => {
+                    const li = document.createElement('li');
+                    li.className = `bg-white p-4 rounded-xl flex justify-between items-start shadow-sm border-l-4 ${entry.isRecurring ? 'border-indigo-400' : 'border-transparent'}`;
+                    const category = entry.category || 'Other';
+                    li.innerHTML = `
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-lg text-red-600">₹${entry.amount}</span>
+                                <span class="category-tag ${categoryColors[category] || categoryColors['Other']}">${category}</span>
+                            </div>
+                            <p class="text-slate-600 text-sm">${entry.comment || '-'}</p>
+                            <p class="text-xs text-slate-400 mt-2">${entry.isRecurring ? 'Auto-logged' : entry.time} • ${entry.method}</p>
+                        </div>
+                        <div class="flex flex-col ml-4">
+                            ${!entry.isRecurring ? `<button class="action-btn edit-btn" data-id="${entry.id}" data-date="${entry.date || selectedDateStr}"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg></button>` : ''}
+                            <button class="action-btn delete-btn delete" data-id="${entry.id}" data-date="${entry.date || selectedDateStr}"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg></button>
+                        </div>`;
                     spendLogList.appendChild(li);
                 });
             };
-            const renderRecurringList = () => {
-                recurringList.innerHTML = '';
-                if (recurringExpenses.length === 0) {
-                    recurringList.innerHTML = `<p class="text-center text-slate-500 text-xs p-2">No recurring expenses set.</p>`;
-                    return;
+
+            const calculateAndDisplayMonthlySummary = (year, month) => {
+                let total = 0, daysCount = 0; const catTotals = {};
+                for (let i = 1; i <= new Date(year, month + 1, 0).getDate(); i++) {
+                    const dStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                    const log = spendHistory[dStr]?.spendLog || [];
+                    if (log.length > 0) {
+                        daysCount++;
+                        log.forEach(e => {
+                            total += e.amount;
+                            catTotals[e.category || 'Other'] = (catTotals[e.category || 'Other'] || 0) + e.amount;
+                        });
+                    }
                 }
-                recurringExpenses.forEach(exp => {
-                    const li = document.createElement('li');
-                    li.className = 'bg-white p-2 rounded-lg flex justify-between items-center text-sm';
-                    let scheduleText = '';
-                    if (exp.frequency === 'yearly' && exp.date) {
-                        const [month, day] = exp.date.split('-');
-                        const tempDate = new Date(2000, month - 1, day);
-                        const monthName = tempDate.toLocaleString('en-US', { month: 'short' });
-                        scheduleText = `Yearly on ${monthName} ${day}`;
-                    } else { // Default to monthly
-                        scheduleText = `Day ${exp.day} of each month`;
-                    }
-                    li.innerHTML = `<div><p class="font-semibold">${exp.comment} - <span class="text-red-600">₹${exp.amount}</span></p><p class="text-xs text-slate-500">${scheduleText} &bull; ${exp.category}</p></div><button class="action-btn delete-recurring-btn delete" data-id="${exp.id}">&times;</button>`;
-                    recurringList.appendChild(li);
+                totalMonthlySpend.textContent = `₹${Math.round(total)}`;
+                avgDailySpend.textContent = `₹${daysCount > 0 ? Math.round(total / daysCount) : 0}`;
+                
+                categorySummaryContainer.innerHTML = '';
+                Object.entries(catTotals).sort((a,b) => b[1] - a[1]).forEach(([cat, amt]) => {
+                    const pct = total > 0 ? ((amt/total)*100).toFixed(0) : 0;
+                    const div = document.createElement('div');
+                    div.className = 'space-y-1';
+                    div.innerHTML = `
+                        <div class="flex justify-between text-xs font-bold">
+                            <span class="category-tag ${categoryColors[cat] || categoryColors['Other']}">${cat}</span>
+                            <span>₹${amt} (${pct}%)</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-indigo-500 h-full" style="width: ${pct}%"></div>
+                        </div>`;
+                    categorySummaryContainer.appendChild(div);
                 });
+                monthlySummarySection.style.display = total > 0 ? 'block' : 'none';
             };
+
             const renderCalendar = () => {
-                calendarBody.innerHTML = ''; const year = calendarDate.getFullYear(); const month = calendarDate.getMonth(); monthYearElement.textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }); const firstDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate(); for (let i = 0; i < firstDay; i++) { calendarBody.insertAdjacentHTML('beforeend', `<div class="calendar-day other-month"></div>`); } for (let i = 1; i <= daysInMonth; i++) { const dayCell = document.createElement('div'); const dayDate = new Date(year, month, i); const dateStr = `${dayDate.getFullYear()}-${(dayDate.getMonth() + 1).toString().padStart(2, '0')}-${dayDate.getDate().toString().padStart(2, '0')}`; dayCell.className = 'calendar-day'; dayCell.dataset.date = dateStr; if (dateStr === getTodayDateString()) dayCell.classList.add('today'); if (dateStr === selectedDateStr) dayCell.classList.add('selected'); let spendHtml = '';
-                    if (spendHistory[dateStr]) {
-                        const totalSpend = calculateTotalSpend(spendHistory[dateStr].spendLog);
-                        if (totalSpend > 0) {
-                            const formattedAmount = formatSpendForCalendar(totalSpend);
-                            spendHtml = `<span class="spend">₹${formattedAmount}</span>`;
-                        }
-                    }
-                dayCell.innerHTML = `<span>${i}</span>${spendHtml}`; calendarBody.appendChild(dayCell); } calculateAndDisplayMonthlySummary(year, month); };
+                calendarBody.innerHTML = '';
+                const year = calendarDate.getFullYear(), month = calendarDate.getMonth();
+                monthYearElement.textContent = calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                
+                const firstDay = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                for (let i = 0; i < firstDay; i++) calendarBody.insertAdjacentHTML('beforeend', `<div class="calendar-day other-month"></div>`);
+                
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+                    const dayCell = document.createElement('div');
+                    dayCell.className = `calendar-day ${dStr === getTodayDateString() ? 'today' : ''} ${dStr === selectedDateStr ? 'selected' : ''}`;
+                    dayCell.dataset.date = dStr;
+                    
+                    const dailyTotal = calculateTotalSpend(spendHistory[dStr]?.spendLog);
+                    const formattedAmt = dailyTotal > 0 ? (dailyTotal >= 1000 ? (dailyTotal/1000).toFixed(1) + 'k' : dailyTotal) : '';
+                    
+                    dayCell.innerHTML = `<span>${i}</span>${formattedAmt ? `<span class="spend">₹${formattedAmt}</span>` : ''}`;
+                    calendarBody.appendChild(dayCell);
+                }
+                calculateAndDisplayMonthlySummary(year, month);
+            };
 
             const viewDate = (dateStr) => {
-                if(editingExpenseId) cancelEditMode();
-                searchInput.value = ''; 
-                
-                selectedDateStr = dateStr; 
-                toggleSearchView(false); 
-                
-                const dataForDay = spendHistory[dateStr] || { spendLog: [] };
-                
-                const totalSpend = calculateTotalSpend(dataForDay.spendLog);
-                totalSpendDisplay.textContent = `₹${totalSpend}`;
-                
-                renderCalendar(); 
-                renderSpendLog(dataForDay.spendLog.slice().reverse());
-                resetButton.style.display = (dateStr === getTodayDateString()) ? 'block' : 'none';
+                selectedDateStr = dateStr;
+                const data = spendHistory[dateStr]?.spendLog || [];
+                totalSpendDisplay.textContent = `₹${calculateTotalSpend(data)}`;
+                spendHeader.textContent = dateStr === getTodayDateString() ? "Total Spent Today" : `Spent on ${formatDateForDisplay(dateStr)}`;
+                renderCalendar();
+                renderSpendLog(data.slice().reverse());
             };
 
-            const toggleSearchView = (isSearching) => {
-                addSpendSection.style.display = isSearching ? 'none' : 'block';
-                totalSpendSection.style.display = isSearching ? 'none' : 'block';
-                calendarSection.style.display = isSearching ? 'none' : 'block';
-                monthlySummarySection.style.display = isSearching ? 'none' : 'block';
-                manageRecurringButton.style.display = isSearching ? 'none' : 'block';
-                if (isSearching) { 
-                    spendLogHeader.textContent = "Search Results"; 
-                } else { 
-                    const isToday = selectedDateStr === getTodayDateString(); 
-                    spendHeader.textContent = isToday ? "Total Spent Today" : `Total Spent on ${formatDateForDisplay(selectedDateStr)}`; 
-                    spendLogHeader.textContent = isToday ? "Today's Expenses" : `Expenses for ${formatDateForDisplay(selectedDateStr)}`; 
+            // --- EVENTS ---
+            addSpendForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                submitSpendButton.disabled = true;
+                submitSpendButton.textContent = "Saving...";
+                
+                const amount = parseInt(spendAmountInput.value);
+                const category = spendCategorySelect.value;
+                const method = spendMethodSelect.value;
+                const comment = spendCommentInput.value;
+
+                if (!spendHistory[selectedDateStr]) spendHistory[selectedDateStr] = { spendLog: [] };
+                
+                if (editingExpenseId) {
+                    const idx = spendHistory[selectedDateStr].spendLog.findIndex(x => x.id === editingExpenseId);
+                    if (idx > -1) spendHistory[selectedDateStr].spendLog[idx] = { ...spendHistory[selectedDateStr].spendLog[idx], amount, category, method, comment };
+                } else {
+                    spendHistory[selectedDateStr].spendLog.push({ id: Date.now(), amount, category, method, comment, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit'}) });
                 }
+
+                await saveDataToFirestore();
+                addSpendForm.reset();
+                cancelEditMode();
+                submitSpendButton.disabled = false;
+                submitSpendButton.textContent = "Log Expense";
+            });
+
+            const cancelEditMode = () => {
+                editingExpenseId = null;
+                formHeader.textContent = "Log Expense";
+                submitSpendButton.textContent = "Log Expense";
+                cancelEditButton.style.display = 'none';
             };
-            
-            // --- EVENT LISTENERS ---
-            addSpendForm.addEventListener('submit', (e) => { e.preventDefault(); const amount = parseInt(spendAmountInput.value); const category = spendCategorySelect.value; const method = spendMethodSelect.value; const comment = spendCommentInput.value; if (!amount || amount <= 0) return; if (editingExpenseId) { updateSpend(selectedDateStr, editingExpenseId, { amount, category, method, comment }); } else { addSpend(selectedDateStr, amount, category, method, comment); } cancelEditMode(); });
-            spendLogList.addEventListener('click', (e) => { const editBtn = e.target.closest('.edit-btn'); const deleteBtn = e.target.closest('.delete-btn'); const date = editBtn?.dataset.date || deleteBtn?.dataset.date; if (editBtn) { startEditMode(parseInt(editBtn.dataset.id), date); } else if (deleteBtn) { if (confirm("Delete this expense?")) { deleteSpend(date, parseInt(deleteBtn.dataset.id)); if (searchInput.value) searchInput.dispatchEvent(new Event('input')); } }});
-            cancelEditButton.addEventListener('click', cancelEditMode);
-            calendarBody.addEventListener('click', (e) => { const dayCell = e.target.closest('.calendar-day'); if (dayCell?.dataset.date) { viewDate(dayCell.dataset.date); }});
-            resetButton.addEventListener('click', () => { if (confirm("Are you sure?")) { if(spendHistory[getTodayDateString()]) { spendHistory[getTodayDateString()].spendLog = []; saveDataToFirestore(); } }});
+
+            spendLogList.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.edit-btn');
+                const delBtn = e.target.closest('.delete-btn');
+                if (editBtn) {
+                    const id = parseFloat(editBtn.dataset.id);
+                    const entry = spendHistory[selectedDateStr].spendLog.find(x => x.id === id);
+                    if (entry) {
+                        editingExpenseId = id;
+                        spendAmountInput.value = entry.amount;
+                        spendCategorySelect.value = entry.category;
+                        spendMethodSelect.value = entry.method;
+                        spendCommentInput.value = entry.comment;
+                        formHeader.textContent = "Edit Expense";
+                        submitSpendButton.textContent = "Update";
+                        cancelEditButton.style.display = 'block';
+                    }
+                } else if (delBtn && confirm("Delete?")) {
+                    const id = parseFloat(delBtn.dataset.id);
+                    spendHistory[selectedDateStr].spendLog = spendHistory[selectedDateStr].spendLog.filter(x => x.id !== id);
+                    saveDataToFirestore();
+                }
+            });
+
+            calendarBody.addEventListener('click', (e) => {
+                const cell = e.target.closest('.calendar-day');
+                if (cell?.dataset.date) viewDate(cell.dataset.date);
+            });
+
             prevMonthBtn.addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth() - 1); renderCalendar(); });
             nextMonthBtn.addEventListener('click', () => { calendarDate.setMonth(calendarDate.getMonth() + 1); renderCalendar(); });
+
+            // --- RECURRING MODAL LOGIC ---
             manageRecurringButton.addEventListener('click', () => { recurringModalOverlay.style.display = 'flex'; });
             closeRecurringModalButton.addEventListener('click', () => { recurringModalOverlay.style.display = 'none'; });
             
-            addRecurringForm.addEventListener('submit', (e) => {
+            recurringFrequencySelect.addEventListener('change', () => {
+                monthlyInputGroup.style.display = recurringFrequencySelect.value === 'monthly' ? 'block' : 'none';
+                yearlyInputGroup.style.display = recurringFrequencySelect.value === 'yearly' ? 'block' : 'none';
+            });
+
+            addRecurringForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const frequency = recurringFrequencySelect.value;
-                const newRecurring = {
+                const newRec = {
                     id: Date.now(),
                     comment: recurringCommentInput.value,
                     amount: parseInt(recurringAmountInput.value),
                     category: recurringCategorySelect.value,
-                    frequency: frequency
+                    frequency: recurringFrequencySelect.value
                 };
-    
-                if (frequency === 'monthly') {
-                    newRecurring.day = parseInt(recurringDayInput.value);
-                } else if (frequency === 'yearly') {
-                    if (!/^\d{2}-\d{2}$/.test(recurringDateInput.value)) {
-                        alert("Please use MM-DD format for the yearly date.");
-                        return;
-                    }
-                    newRecurring.date = recurringDateInput.value; // e.g., "09-01"
-                }
-    
-                recurringExpenses.push(newRecurring);
-                saveDataToFirestore();
-                renderRecurringList();
+                if (newRec.frequency === 'monthly') newRec.day = parseInt(recurringDayInput.value);
+                else newRec.date = recurringDateInput.value;
+
+                recurringExpenses.push(newRec);
+                await saveDataToFirestore();
                 addRecurringForm.reset();
-                // Reset form display to default
-                monthlyInputGroup.style.display = 'block';
-                yearlyInputGroup.style.display = 'none';
+                renderRecurringList();
             });
 
-            recurringFrequencySelect.addEventListener('change', () => {
-                if (recurringFrequencySelect.value === 'monthly') {
-                    monthlyInputGroup.style.display = 'block';
-                    yearlyInputGroup.style.display = 'none';
-                    recurringDayInput.required = true;
-                    recurringDateInput.required = false;
-                } else {
-                    monthlyInputGroup.style.display = 'none';
-                    yearlyInputGroup.style.display = 'block';
-                    recurringDayInput.required = false;
-                    recurringDateInput.required = true;
+            const renderRecurringList = () => {
+                recurringList.innerHTML = '';
+                recurringExpenses.forEach(exp => {
+                    const li = document.createElement('li');
+                    li.className = 'bg-slate-50 p-3 rounded-lg flex justify-between items-center text-sm';
+                    li.innerHTML = `<div><p class="font-bold">${exp.comment}</p><p class="text-xs text-slate-400">₹${exp.amount} • ${exp.frequency}</p></div><button class="text-red-400 delete-recurring" data-id="${exp.id}">&times;</button>`;
+                    recurringList.appendChild(li);
+                });
+            };
+
+            recurringList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('delete-recurring')) {
+                    const id = parseFloat(e.target.dataset.id);
+                    recurringExpenses = recurringExpenses.filter(x => x.id !== id);
+                    saveDataToFirestore();
                 }
             });
 
-            recurringList.addEventListener('click', (e) => { const deleteBtn = e.target.closest('.delete-recurring-btn'); if (deleteBtn && confirm('Delete this recurring expense?')) { recurringExpenses = recurringExpenses.filter(exp => exp.id !== parseInt(deleteBtn.dataset.id)); saveDataToFirestore(); renderRecurringList(); }});
-            searchInput.addEventListener('input', () => {
-                const query = searchInput.value.toLowerCase().trim();
-                if (!query) { viewDate(selectedDateStr); return; }
-                toggleSearchView(true);
-                let results = [];
-                Object.keys(spendHistory).forEach(date => { spendHistory[date].spendLog.forEach(expense => { if (expense.comment?.toLowerCase().includes(query) || expense.category?.toLowerCase().includes(query) || expense.amount.toString().includes(query)) { results.push({ ...expense, date }); } }); });
-                results.sort((a, b) => new Date(b.date) - new Date(a.date));
-                renderSpendLog(results, true);
+            exportCsvButton.addEventListener('click', () => {
+                const rows = [["Date", "Category", "Amount", "Method", "Comment"]];
+                Object.keys(spendHistory).forEach(d => {
+                    spendHistory[d].spendLog.forEach(e => rows.push([d, e.category, e.amount, e.method, e.comment]));
+                });
+                const csv = rows.map(r => r.join(",")).join("\n");
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'expenses.csv'; a.click();
             });
-            exportCsvButton.addEventListener('click', exportMonthToCSV);
 
-            // --- INITIALIZATION ---
-            const displayDate = () => { dateElement.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); };
-            displayDate();
-            handleEmailSignIn();
+            dateElement.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         });
     </script>
 </body>
